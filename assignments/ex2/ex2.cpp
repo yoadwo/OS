@@ -3,41 +3,64 @@
 #include <unistd.h>
 #include <string.h>
 
+#include <iostream>
+#include <vector>
+#include <sstream>
+#include <string>    
 
-int main(){
-    
-    printf("Welcome to OS SHell\n");
+
+std::vector<std::string> parseLine(std::string line)
+{
+   std::vector<std::string> tokens;
+   std::string token;
+   std::istringstream tokenStream(line);
+   while (std::getline(tokenStream, token, ' ')){
+      tokens.push_back(token);
+   }
+   return tokens;
+}
+
+int main()
+{
+
+    std::cout <<"Welcome to OS SHell\n";
     char cwd[1024];
-    char *line = NULL;
-    size_t len = 0;
-    ssize_t nread;
-    while(1){
-        printf("OS SHell: ");
+    std::string line;
+    int linelen;
+    // char *line = NULL;
+    // size_t len = 0;
+    // ssize_t nread;
+    std::vector<std::string> res;
+
+    while (1)
+    {
+        std::cout << "OS SHell: "; 
         if (getcwd(cwd, sizeof(cwd)) == NULL)
             perror("??");
         else
-            printf("%s> ", cwd);
-        
-        if ((nread = getline(&line, &len, stdin)) == -1) 
-            continue;
+            std:: cout << cwd << " > ";
+
+        std::getline (std::cin,line);
+        linelen = line.length();
         //if only "return" was pressed
-        if (len == 1)
+        if (linelen == 1)
             continue;
 
-        line[strcspn(line, "\n")] = 0;
-        if (!strcmp(line, "exit")){
-            printf("C ya!\n");
+        line[linelen] = 0;
+        res = parseLine(line);
+
+        if (!res[0].compare("exit"))
+        {
+            std::cout << "C ya!\n";
             break;
         }
         else
-            printf ("%s: command not found\n", line);
-           
+            std::cout << res[0] <<": command not found\n";
+
         
     }
 
-    printf("Press any key to continue...\n");
+    std::cout << "Press any key to continue...\n";
     getchar();
     return 0;
-    
-
 }

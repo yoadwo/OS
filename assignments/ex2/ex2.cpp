@@ -9,6 +9,8 @@
 #include <string>    
 
 
+using namespace std;
+
 std::vector<std::string> parseLine(std::string line)
 {
    std::vector<std::string> tokens;
@@ -49,14 +51,18 @@ int main()
         line[linelen] = 0;
         res = parseLine(line);
 
-        if (!res[0].compare("exit"))
+        if (!res[0].compare("cd")){
+            chdir(res[1].c_str());
+        }
+        else if (!res[0].compare("exit"))
         {
             std::cout << "C ya!\n";
             break;
         }
         else
             std::cout << res[0] <<": command not found\n";
-
+        
+        
         
     }
 

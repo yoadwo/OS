@@ -11,8 +11,10 @@
 
 using namespace std;
 
-std::vector<std::string> parseLine(std::string line, char delimiter)
-{
+/*  function ParseLine: parse string by delimiter
+    input: line to parse (string::line) and delimiter to parse by (char::delimiter)
+*/
+std::vector<std::string> parseLine(std::string line, char delimiter){
    std::vector<std::string> tokens;
    std::string token;
    std::istringstream tokenStream(line);
@@ -22,15 +24,21 @@ std::vector<std::string> parseLine(std::string line, char delimiter)
    return tokens;
 }
 
+/* function printPrompt: show shell messages
+    OSHell: <path> $
+*/
 void printPrompt(){
     char cwd[1024];
     std::cout << "OS SHell: "; 
     if (getcwd(cwd, sizeof(cwd)) == NULL)
         perror("??");
     else
-        std:: cout << cwd << " > ";
+        std:: cout << cwd << " >";
 }
 
+/* function handleIOErrors: handle getline() errors
+    mainly used to catch End-Of-File (Ctrl+D)
+*/
 void handleIOErrors(){
     if (std::cin.bad()){
         // IO error
@@ -49,11 +57,8 @@ int main()
 
     std::cout <<"Welcome to OS SHell\n";
     
-    std::string line;
     int linelen;
-    // char *line = NULL;
-    // size_t len = 0;
-    // ssize_t nread;
+    std::string line;
     std::vector<std::string> res;
 
     printPrompt();    
@@ -68,7 +73,6 @@ int main()
             continue;
         }
 
-        line[linelen] = 0;
         res = parseLine(line, ' ');
 
         if (!res[0].compare("cd")){

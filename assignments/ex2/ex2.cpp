@@ -20,11 +20,33 @@ std::vector<std::string> parseLine(std::string line)
    return tokens;
 }
 
+void printPrompt(){
+    char cwd[1024];
+    std::cout << "OS SHell: "; 
+    if (getcwd(cwd, sizeof(cwd)) == NULL)
+        perror("??");
+    else
+        std:: cout << cwd << " > ";
+}
+
+void handleIOErrors(){
+    if (std::cin.bad()){
+        // IO error
+    }
+    else if (!std::cin.eof()){
+        // format error (not possible with getline but possible with operator>>)
+    }
+    else
+    {
+        std::cout << "C ya!\n";   
+    }
+}
+
 int main()
 {
 
     std::cout <<"Welcome to OS SHell\n";
-    char cwd[1024];
+    
     std::string line;
     int linelen;
     // char *line = NULL;
@@ -32,19 +54,17 @@ int main()
     // ssize_t nread;
     std::vector<std::string> res;
 
-    while (1)
-    {
-        std::cout << "OS SHell: "; 
-        if (getcwd(cwd, sizeof(cwd)) == NULL)
-            perror("??");
-        else
-            std:: cout << cwd << " > ";
+    printPrompt();    
 
-        std::getline (std::cin,line);
+    while (std::getline (std::cin,line))
+    {
+        
         linelen = line.length();
         //if only "return" was pressed
-        if (linelen == 1)
+        if (linelen == 0){
+            printPrompt();
             continue;
+        }
 
         line[linelen] = 0;
         res = parseLine(line);
@@ -57,8 +77,12 @@ int main()
         else
             std::cout << res[0] <<": command not found\n";
 
-        
+        printPrompt();
+
     }
+
+    handleIOErrors();
+    
 
     std::cout << "Press any key to continue...\n";
     getchar();

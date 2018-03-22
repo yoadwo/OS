@@ -11,12 +11,12 @@
 
 using namespace std;
 
-std::vector<std::string> parseLine(std::string line)
+std::vector<std::string> parseLine(std::string line, char delimiter)
 {
    std::vector<std::string> tokens;
    std::string token;
    std::istringstream tokenStream(line);
-   while (std::getline(tokenStream, token, ' ')){
+   while (std::getline(tokenStream, token, delimiter)){
       tokens.push_back(token);
    }
    return tokens;
@@ -69,7 +69,7 @@ int main()
         }
 
         line[linelen] = 0;
-        res = parseLine(line);
+        res = parseLine(line, ' ');
 
         if (!res[0].compare("cd")){
             chdir(res[1].c_str());

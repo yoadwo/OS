@@ -6,7 +6,9 @@
 #include <iostream>
 #include <vector>
 #include <sstream>
-#include <string>    
+#include <string>  
+#include <regex>
+#include <cstdlib>  
 
 
 using namespace std;
@@ -14,7 +16,7 @@ using namespace std;
 /*  function ParseLine: parse string by delimiter
     input: line to parse (string::line) and delimiter to parse by (char::delimiter)
 */
-std::vector<std::string> parseLine(std::string line, char delimiter){
+vector<string> parseLine(string line, char delimiter){
    std::vector<std::string> tokens;
    std::string token;
    std::istringstream tokenStream(line);
@@ -52,8 +54,41 @@ void handleIOErrors(){
     }
 }
 
-int main()
-{
+/* function expandEnv: replace environment variable $VAR with actual value
+    input: user command (string: text) that may contain reference to environment variables
+    will search for $VAR using regular expression until no more matches found
+    for each match, reconstruct string with new $VAR value
+*/
+string expandEnv(string text){ 
+    static const regex env_re{R"(\$[_a-zA-Z][_a-zA-Z0-9]*)"};
+    char *env;
+    string s = text, var_name,s_temp, prefi, suffi;
+    smatch m; // <-- regular expression match object
+
+    while (regex_search(s, m, env_re)) // <-- use it here to get the match
+    {
+        // regex_search returns a match $VAR into variable "m"
+        var_name = m[0];
+        // transform $VAR into VAR and lookup in env
+        env = getenv(var_name.substr(1).c_str());
+        prefi = m.prefix().str();
+        suffi = m.suffix().str();
+        // s_temp = <old string prefix> + <$VAR value> + <old string suffix>
+        s_temp = prefi;
+        s_temp.append(env);
+        s_temp.append(suffi);
+        // push back into s
+        s = s_temp;
+    }
+    
+    return s;
+}
+
+int main(){
+
+/*     std::cout << expandEnv("my $HOME is where the heart is\n "
+    "but $PWD looks the same,\n"
+    "but $USER rules it all\n"); */
 
     std::cout <<"Welcome to OS SHell\n";
     
@@ -62,7 +97,7 @@ int main()
     std::vector<std::string> res;
 
     printPrompt();    
-
+    
     while (std::getline (std::cin,line))
     {
         
@@ -72,7 +107,7 @@ int main()
             printPrompt();
             continue;
         }
-
+        line = expandEnv(line);
         res = parseLine(line, ' ');
 
         if (!res[0].compare("cd")){

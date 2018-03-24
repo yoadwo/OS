@@ -181,7 +181,9 @@ int main(){
 
         }
         else if (!res[0].compare("cd")){
-             if (!changeDir(res))
+            if (changeDir(res))
+                exitStatus = 0;
+            else
                 exitStatus = 1;
         }
         else if (!res[0].compare("exit"))

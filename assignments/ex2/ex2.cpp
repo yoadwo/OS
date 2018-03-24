@@ -9,6 +9,7 @@
 #include <string>  
 #include <regex>
 #include <cstdlib>  
+#include <algorithm>
 
 
 using namespace std;
@@ -17,13 +18,15 @@ using namespace std;
     input: line to parse (string::line) and delimiter to parse by (char::delimiter)
 */
 vector<string> parseLine(string line, char delimiter){
-   std::vector<std::string> tokens;
-   std::string token;
-   std::istringstream tokenStream(line);
-   while (std::getline(tokenStream, token, delimiter)){
-      tokens.push_back(token);
-   }
-   return tokens;
+    // int n_spaces = count(line.begin(), line.end(), ' ');
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(line);
+    while (std::getline(tokenStream, token, delimiter))
+    {
+        tokens.push_back(token);
+    }
+    return tokens;
 }
 
 /* function printPrompt: show shell messages
@@ -75,7 +78,20 @@ string expandEnv(string text){
         suffi = m.suffix().str();
         // s_temp = <old string prefix> + <$VAR value> + <old string suffix>
         s_temp = prefi;
-        s_temp.append(env);
+        // 
+        if (env){
+            s_temp.append(env);
+        }
+        else {
+            /* 
+            uncomment the following line if buggy
+            when env is not appended, we get a double-space
+            <prefix>+" " + " " + <suffix>
+            so perhaps is better to trim one space 
+            */
+
+            //suffi = suffi.substr(1);
+        }
         s_temp.append(suffi);
         // push back into s
         s = s_temp;
@@ -84,23 +100,32 @@ string expandEnv(string text){
     return s;
 }
 
-int main(){
+/* function changeDir: change current working directory
+    input: array (vector:: res) that hold paramters to "cd" command
+    prompt user if input is missing parameters
+*/
+void changeDir(vector<string> res){ 
+    if (res.size() > 1){
+        chdir(res[1].c_str());
+    }
+    // if (res.size() == 1)
+    else{
+        cout << "cd: Usage: cd [dir]\n";
+    }
+}
 
-/*     std::cout << expandEnv("my $HOME is where the heart is\n "
-    "but $PWD looks the same,\n"
-    "but $USER rules it all\n"); */
+int main(){
 
     std::cout <<"Welcome to OS SHell\n";
     
     int linelen;
-    std::string line;
-    std::vector<std::string> res;
+    string line;
+    vector<string> res;
 
     printPrompt();    
     
-    while (std::getline (std::cin,line))
+    while (getline (cin,line))
     {
-        
         linelen = line.length();
         //if only "return" was pressed
         if (linelen == 0){
@@ -108,10 +133,14 @@ int main(){
             continue;
         }
         line = expandEnv(line);
+
         res = parseLine(line, ' ');
 
-        if (!res[0].compare("cd")){
-            chdir(res[1].c_str());
+        if (res.empty()){
+
+        }
+        else if (!res[0].compare("cd")){
+            changeDir(res);
         }
         else if (!res[0].compare("exit"))
         {

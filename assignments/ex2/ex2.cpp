@@ -100,17 +100,58 @@ string expandEnv(string text){
     return s;
 }
 
+string expandStatus(string text, int exitStatus){
+    static const regex env_re{R"(\$\?)"};
+    string s = text, var,s_temp, prefi, suffi;
+    smatch m; // <-- regular expression match object
+
+    while (regex_search(s, m, env_re)) // <-- use it here to get the match
+    {
+        // regex_search returns a match '$?' into variable "m"
+        var = m[0];
+        prefi = m.prefix().str();
+        suffi = m.suffix().str();
+        // s_temp = <old string prefix> + <exit status value> + <old string suffix>
+        s_temp = prefi;
+        // 
+        if (m.ready()){
+            s_temp.append(to_string(exitStatus));
+        }
+        else {
+            /* 
+            uncomment the following line if buggy
+            when env is not appended, we get a double-space
+            <prefix>+" " + " " + <suffix>
+            so perhaps is better to trim one space 
+            */
+
+            //suffi = suffi.substr(1);
+        }
+        s_temp.append(suffi);
+        // push back into s
+        s = s_temp;
+    }
+    
+    return s;
+}
+
 /* function changeDir: change current working directory
     input: array (vector:: res) that hold paramters to "cd" command
     prompt user if input is missing parameters
 */
-void changeDir(vector<string> res){ 
+bool changeDir(vector<string> res){ 
     if (res.size() > 1){
-        chdir(res[1].c_str());
+        if (chdir(res[1].c_str())==0)
+            return true;
+        else{
+            cout << "cd: No such file or directory\n";
+            return false;
+        }
     }
     // if (res.size() == 1)
     else{
         cout << "cd: Usage: cd [dir]\n";
+        return false;
     }
 }
 
@@ -118,7 +159,7 @@ int main(){
 
     std::cout <<"Welcome to OS SHell\n";
     
-    int linelen;
+    int linelen, exitStatus = 0;
     string line;
     vector<string> res;
 
@@ -133,14 +174,15 @@ int main(){
             continue;
         }
         line = expandEnv(line);
-
+        line = expandStatus(line, exitStatus);
         res = parseLine(line, ' ');
 
         if (res.empty()){
 
         }
         else if (!res[0].compare("cd")){
-            changeDir(res);
+             if (!changeDir(res))
+                exitStatus = 1;
         }
         else if (!res[0].compare("exit"))
         {

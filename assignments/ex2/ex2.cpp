@@ -19,37 +19,32 @@ using namespace std;
 /*  function ParseLine: parse string by delimiter
     input: line to parse (string::line) and delimiter to parse by (char::delimiter)
 */
-vector<char*> parseLine(string line, char delimiter){
+vector<char *> parseLine(string line, char delimiter){
     // int n_spaces = count(line.begin(), line.end(), ' ');
     vector<string> tokens;
     string token;
     istringstream tokenStream(line);
-    vector<char*> commandVector;
+      
+    vector<char*> cstrings;
+    
 
     while (getline(tokenStream, token, delimiter))
     {
-        //tokens.push_back(token);
-        commandVector.push_back(const_cast<char*>(token.c_str()));
+        tokens.push_back(token);
+        
     }
-    //added later, to make it execvp-compatible
-    commandVector.push_back(nullptr);
-
-    // charVec is one element bigger than tokens, to include 'nullptr'
-    //vector<const char*> charVec(tokens.size()+1,nullptr);
-    vector<const char*> charVec(commandVector.size()+1,nullptr);
-    /* for (size_t i=0; i<tokens.size();i++) {
-        charVec[i]= tokens[i].c_str();
-    } */
-    for (size_t i=0; i<commandVector.size();i++) {
-        charVec[i]= commandVector[i];
-    }
-
+    //tokens.push_back(nullptr);
     
-    // execvp (commandVector[0], &commandVector[0]);
-    //execvp (charVec[0], charVec.data());
-    return commandVector;
+    cstrings.reserve(tokens.size());
+
+    for(size_t i = 0; i < tokens.size(); ++i)
+        cstrings.push_back(const_cast<char*>(tokens[i].c_str()));
+    cstrings.push_back(nullptr);
     
-    //return tokens;
+    execvp(cstrings[0],&cstrings[0]);
+    
+    
+    return cstrings;
 }
 
 
@@ -113,7 +108,9 @@ string expandEnv(string text){
 }
 
 /* 
-function expand tilde expands cwd and replace home directory with tilde
+function expandTildePromt: expands '~' in prompt and replace '/home/<user>' with '~'
+input: path (string:text) of current directory
+will search for '~' using regular expression and replace with $HOME contents
 */
 string expandTildePrompt(string text){ 
     static const regex env_re{R"(\/home\/[_a-zA-Z][_a-zA-Z0-9]*\/)"};
@@ -138,7 +135,9 @@ string expandTildePrompt(string text){
 }
 
 /* 
-function expand tilde expands cwd and replace tilde with home directory
+function expandTildeInput: expands '~' into 'home/<user>'
+input: user command (string: text) that may contain '~'
+will search for '~' using regular expression and replace with $HOME contents
 */
 string expandTildeInput(string text){ 
     static const regex env_re{R"(\~)"};
@@ -218,9 +217,9 @@ void printPrompt(){
     input: array (vector:: res) that hold paramters to "cd" command
     prompt user if input is missing parameters
 */
-bool changeDir(vector<char*> res){ 
+bool changeDir(vector<char *> res){ 
     if (res.size() > 1){
-        //if (chdir(res[1].c_str())==0)
+        // if (chdir(res[1].c_str())==0)
         if (chdir(res[1])==0)
             return true;
         else{
@@ -293,7 +292,7 @@ int main(){
             else
                 exitStatus = 1;
         }
-        //else if (!res[0].compare("exit"))
+        // else if (!res[0].compare("exit")){
         else if (!strncmp(res[0],"exit",strlen("exit"))){
             std::cout << "C ya!\n";
             break;

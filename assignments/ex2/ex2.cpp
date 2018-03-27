@@ -46,7 +46,7 @@ vector<char*> parseLine(string line, char delimiter){
 
     
     // execvp (commandVector[0], &commandVector[0]);
-    execvp (charVec[0], charVec.data());
+    //execvp (charVec[0], charVec.data());
     return commandVector;
     
     //return tokens;

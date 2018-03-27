@@ -53,7 +53,6 @@ vector<char*> parseLine(string line, char delimiter){
 }
 
 
-
 /* function handleIOErrors: handle getline() errors
     mainly used to catch End-Of-File (Ctrl+D)
 */
@@ -113,13 +112,6 @@ string expandEnv(string text){
     return s;
 }
 
-<<<<<<< HEAD
-/* function expandStatus: replace '$?' with last exit status
-    input: user command (string: text) and last process exit status (int: exitStatus) 
-    will search for '$?' using regular expression until no more matches found
-    for each match, reconstruct string with some int (0..)
-*/
-=======
 /* 
 function expand tilde expands cwd and replace home directory with tilde
 */
@@ -175,7 +167,6 @@ string expandTildeInput(string text){
     return s;
 }
 
->>>>>>> c0692a674a11e4d9fd82c3b409dec53d52f375ae
 string expandStatus(string text, int exitStatus){
     static const regex env_re{R"(\$\?)"};
     string s = text, var,s_temp, prefi, suffi;

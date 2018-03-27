@@ -29,17 +29,7 @@ vector<string> parseLine(string line, char delimiter){
     return tokens;
 }
 
-/* function printPrompt: show shell messages
-    OSHell: <path> $
-*/
-void printPrompt(){
-    char cwd[1024];
-    std::cout << "OS SHell: "; 
-    if (getcwd(cwd, sizeof(cwd)) == NULL)
-        perror("??");
-    else
-        std:: cout << cwd << " >";
-}
+
 
 /* function handleIOErrors: handle getline() errors
     mainly used to catch End-Of-File (Ctrl+D)
@@ -100,6 +90,61 @@ string expandEnv(string text){
     return s;
 }
 
+/* 
+function expand tilde expands cwd and replace home directory with tilde
+*/
+string expandTildePrompt(string text){ 
+    static const regex env_re{R"(\/home\/[_a-zA-Z][_a-zA-Z0-9]*\/)"};
+    string s = text, user_home,s_temp, prefi, suffi;
+    smatch m; // <-- regular expression match object
+
+    while (regex_search(s, m, env_re)) // <-- use it here to get the match
+    {
+        // regex_search returns a match $VAR into variable "m"
+        user_home = m[0];
+        suffi = m.suffix().str();
+        // s_temp = <old string prefix> + <$VAR value> + <old string suffix>
+        s_temp ="~/";
+        // 
+        s_temp.append(suffi);
+       
+        // push back into s
+        s = s_temp;
+    }
+    
+    return s;
+}
+
+/* 
+function expand tilde expands cwd and replace tilde with home directory
+*/
+string expandTildeInput(string text){ 
+    static const regex env_re{R"(\~)"};
+    char *user_home;
+    string s = text, tilde,s_temp, prefi, suffi;
+    smatch m; // <-- regular expression match object
+
+    while (regex_search(s, m, env_re)) // <-- use it here to get the match
+    {
+        // regex_search returns a match $VAR into variable "m"
+        tilde = m[0];
+        // transform $VAR into VAR and lookup in env
+        user_home = getenv("HOME");
+        prefi = m.prefix().str();
+        suffi = m.suffix().str();
+        // s_temp = <old string prefix> + <$VAR value> + <old string suffix>
+        s_temp = prefi;
+        
+        s_temp.append(user_home);
+
+        s_temp.append(suffi);
+        // push back into s
+        s = s_temp;
+    }
+    
+    return s;
+}
+
 string expandStatus(string text, int exitStatus){
     static const regex env_re{R"(\$\?)"};
     string s = text, var,s_temp, prefi, suffi;
@@ -133,6 +178,18 @@ string expandStatus(string text, int exitStatus){
     }
     
     return s;
+}
+
+/* function printPrompt: show shell messages
+    OSHell: <path> $
+*/
+void printPrompt(){
+    char cwd[1024];
+    std::cout << "OS SHell: "; 
+    if (getcwd(cwd, sizeof(cwd)) == NULL)
+        perror("??");
+    else
+        std:: cout << expandTildePrompt(cwd) << " >";
 }
 
 /* function changeDir: change current working directory
@@ -173,6 +230,8 @@ int main(){
             printPrompt();
             continue;
         }
+        
+        line=expandTildeInput(line);
         line = expandEnv(line);
         line = expandStatus(line, exitStatus);
         res = parseLine(line, ' ');

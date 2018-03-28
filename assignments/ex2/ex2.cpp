@@ -41,9 +41,6 @@ vector<char *> parseLine(string line, char delimiter){
         cstrings.push_back(const_cast<char*>(tokens[i].c_str()));
     cstrings.push_back(nullptr);
     
-    execvp(cstrings[0],&cstrings[0]);
-    
-    
     return cstrings;
 }
 
@@ -234,28 +231,54 @@ bool changeDir(vector<char *> res){
     }
 }
 
-void execute(vector <char*> argv)
+int execute(vector<char *> argv)
 {
     pid_t pid;
-    int status;
-     
-    /* fork a child process           */
-    if ((pid = fork()) < 0) {     
-        cout << "*** ERROR: forking child process failed\n" << endl;
-        //exit(1);
-     }
-    /* for the child process:         */
-    else if (pid == 0) {          
-        if (execvp(argv[0], &argv[0]) < 0) {     /* execute the command  */
-            cout << "*** ERROR: exec failed\n" << endl;
-            exit(1);
-          }
-     }
-    /* for the parent:      */
-     else {                                  
-          while (wait(&status) != pid)       /* wait for completion  */
-               ;
-     }
+    int status, lastExitStatus, errsv;
+
+    // fork a child process
+    pid = fork();
+
+    // check if fork failed
+    if (pid == -1){
+        perror("*** ERROR: forking child process failed");
+        exit(EXIT_FAILURE);
+    }
+    // for the child process:        
+    else if (pid == 0){
+        // execute the command 
+        status = execvp(argv[0], &argv[0]);
+        if ( status < 0){ 
+            //cout << "*** ERROR: exec failed [" << argv[0] <<"]\n";
+            perror("execvp() failed");
+            exit(127);
+        }
+    }
+    // for the parent:     
+    else
+    { 
+        //while (wait(&status) != pid) ;      /* wait for completion  */
+        if (waitpid(pid, &status, 0) != -1){
+            if ( WIFEXITED(status) ) {
+                lastExitStatus = WEXITSTATUS(status);
+                printf("Exited normally with status %d\n", lastExitStatus);
+            }
+            else if ( WIFSIGNALED(status) ) {
+                lastExitStatus = 128 + WTERMSIG(status);
+                printf("Exited due to receiving signal %d\n", lastExitStatus);
+            }
+            else {
+                printf("Something strange just happened.\n");
+            }
+        }
+        else {
+            perror("waitpid() failed");
+            //exit(EXIT_FAILURE);
+            lastExitStatus = EXIT_FAILURE;
+        }
+    }
+
+    return lastExitStatus;
 }
 
 int main(){
@@ -298,12 +321,9 @@ int main(){
             break;
         }
         else{
-            //    execute(res);
-            cout << res[0] <<": command not found.\n";
-
+            exitStatus = execute(res);
         }
         
-
         printPrompt();
 
     }

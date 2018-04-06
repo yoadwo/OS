@@ -198,6 +198,10 @@ string expandStatus(string text, int exitStatus){
     return s;
 }
 
+
+
+
+
 /* function printPrompt: show shell messages
     OSHell: <path> $
 */
@@ -231,7 +235,7 @@ bool changeDir(vector<char *> res){
     }
 }
 
-int execute(vector<char *> argv)
+int execute(vector<char *> argv,int background)
 {
     pid_t pid;
     int status, lastExitStatus, errsv;
@@ -255,7 +259,7 @@ int execute(vector<char *> argv)
         }
     }
     // for the parent:     
-    else
+    else if(background==0)
     { 
         //while (wait(&status) != pid) ;      /* wait for completion  */
         if (waitpid(pid, &status, 0) != -1){
@@ -277,6 +281,8 @@ int execute(vector<char *> argv)
             lastExitStatus = EXIT_FAILURE;
         }
     }
+    else if(background==1)
+        cout << "\n[" << getpid() <<"]"<< endl;
 
     return lastExitStatus;
 }
@@ -284,11 +290,11 @@ int execute(vector<char *> argv)
 int main(){
 
     std::cout <<"Welcome to OS SHell\n";
-    
     int linelen, exitStatus = 0;
     string line;
     vector<char*> res;
-
+    char *background;
+    
     printPrompt();    
     
     while (getline (cin,line))
@@ -321,9 +327,32 @@ int main(){
             break;
         }
         else{
-            exitStatus = execute(res);
-        }
+            background = res.end()[-2];
+            if(!strncmp(background,"&",strlen("&"))){
+                res.pop_back();
+                res.pop_back();
+                res.push_back(NULL);
+               exitStatus = execute(res,1);
+                
+            }
+            else{
+               exitStatus = execute(res,0);  
+            }
+
+            // while(res[k]!=NULL){
+            //     //background process
+            // if(!strncmp(res[k],"&",strlen("&"))){
+            //     res[k]=NULL;
+            //     exitStatus = execute(res,1);
+            // }
+            //     //not background process
+            // else
+            //     exitStatus = execute(res,0);  
+
+            // k++;    
+            // }
         
+        }
         printPrompt();
 
     }

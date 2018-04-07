@@ -286,6 +286,19 @@ int execute(vector<char *> argv,int background)
 
     return lastExitStatus;
 }
+//zombie handler function
+void handle_zombie() {
+    pid_t pid;
+    int status;
+    while (1) {
+        pid = waitpid(-1, &status, WNOHANG);
+        if (pid <= 0) /* No more zombie children to reap. */
+        break;
+       
+        cout<<"Reaped child:"<< pid<<","<<status<<endl;
+     }
+    sleep(1);
+} 
 
 int main(){
 
@@ -294,7 +307,7 @@ int main(){
     string line;
     vector<char*> res;
     char *background;
-    
+
     printPrompt();    
     
     while (getline (cin,line))
@@ -339,18 +352,8 @@ int main(){
                exitStatus = execute(res,0);  
             }
 
-            // while(res[k]!=NULL){
-            //     //background process
-            // if(!strncmp(res[k],"&",strlen("&"))){
-            //     res[k]=NULL;
-            //     exitStatus = execute(res,1);
-            // }
-            //     //not background process
-            // else
-            //     exitStatus = execute(res,0);  
-
-            // k++;    
-            // }
+              //call for zombie handler
+            handle_zombie();
         
         }
         printPrompt();

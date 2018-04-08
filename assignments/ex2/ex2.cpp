@@ -44,7 +44,6 @@ vector<char *> parseLine(string line, char delimiter){
     return cstrings;
 }
 
-
 /* function handleIOErrors: handle getline() errors
     mainly used to catch End-Of-File (Ctrl+D)
 */
@@ -104,10 +103,9 @@ string expandEnv(string text){
     return s;
 }
 
-/* 
-function expandTildePromt: expands '~' in prompt and replace '/home/<user>' with '~'
-input: path (string:text) of current directory
-will search for '~' using regular expression and replace with $HOME contents
+/* function expandTildePromt: expands '~' in prompt and replace '/home/<user>' with '~'
+    input: path (string:text) of current directory
+    will search for '~' using regular expression and replace with $HOME contents
 */
 string expandTildePrompt(string text){ 
     static const regex env_re{R"(\/home\/[_a-zA-Z][_a-zA-Z0-9]*\/)"};
@@ -131,10 +129,9 @@ string expandTildePrompt(string text){
     return s;
 }
 
-/* 
-function expandTildeInput: expands '~' into 'home/<user>'
-input: user command (string: text) that may contain '~'
-will search for '~' using regular expression and replace with $HOME contents
+/*  function expandTildeInput: expands '~' into 'home/<user>'
+    input: user command (string: text) that may contain '~'
+    will search for '~' using regular expression and replace with $HOME contents
 */
 string expandTildeInput(string text){ 
     static const regex env_re{R"(\~)"};
@@ -197,9 +194,6 @@ string expandStatus(string text, int exitStatus){
     
     return s;
 }
-
-
-
 
 
 /* function printPrompt: show shell messages
@@ -312,11 +306,12 @@ void handle_zombie() {
 
 int main(){
 
-    std::cout <<"Welcome to OS SHell\n";
+    cout <<"Welcome to OS SHell\n";
     int linelen, exitStatus = 0;
+    char *background;
     string line;
     vector<char*> res;
-    char *background;
+    
 
     printPrompt();    
     

@@ -259,30 +259,40 @@ int execute(vector<char *> argv,int background)
         }
     }
     // for the parent:     
-    else if(background==0)
-    { 
-        //while (wait(&status) != pid) ;      /* wait for completion  */
-        if (waitpid(pid, &status, 0) != -1){
-            if ( WIFEXITED(status) ) {
-                lastExitStatus = WEXITSTATUS(status);
-                printf("Exited normally with status %d\n", lastExitStatus);
+    else if (pid > 0){
+        if (background == 0)
+        {
+            //while (wait(&status) != pid) ;      /* wait for completion  */
+            if (waitpid(pid, &status, 0) != -1)
+            {
+                if (WIFEXITED(status))
+                {
+                    lastExitStatus = WEXITSTATUS(status);
+                    printf("Exited normally with status %d\n", lastExitStatus);
+                }
+                else if (WIFSIGNALED(status))
+                {
+                    lastExitStatus = 128 + WTERMSIG(status);
+                    printf("Exited due to receiving signal %d\n", lastExitStatus);
+                }
+                else
+                {
+                    printf("Something strange just happened.\n");
+                }
             }
-            else if ( WIFSIGNALED(status) ) {
-                lastExitStatus = 128 + WTERMSIG(status);
-                printf("Exited due to receiving signal %d\n", lastExitStatus);
-            }
-            else {
-                printf("Something strange just happened.\n");
+            else
+            {
+                perror("waitpid() failed");
+                //exit(EXIT_FAILURE);
+                lastExitStatus = EXIT_FAILURE;
             }
         }
-        else {
-            perror("waitpid() failed");
-            //exit(EXIT_FAILURE);
-            lastExitStatus = EXIT_FAILURE;
-        }
+        else if (background == 1)
+            // is this child pid or parent pid?
+            cout << "\n[" << getpid() << "]" << endl;
     }
-    else if(background==1)
-        cout << "\n[" << getpid() <<"]"<< endl;
+    
+
 
     return lastExitStatus;
 }
@@ -342,6 +352,7 @@ int main(){
         else{
             background = res.end()[-2];
             if(!strncmp(background,"&",strlen("&"))){
+                // take out "NULL" and "&", return "NULL" 
                 res.pop_back();
                 res.pop_back();
                 res.push_back(NULL);

@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h> 
+#include <sys/wait.h>
 
 #include <iostream>
 #include <vector>
@@ -10,8 +12,7 @@
 #include <regex>
 #include <cstdlib>  
 #include <algorithm>
-#include <unistd.h>
-#include <sys/wait.h>
+
 
 
 using namespace std;
@@ -244,7 +245,7 @@ int execute(vector<char *> argv,int background)
     }
     // for the child process:        
     else if (pid == 0){
-        // execute the command 
+        // execute the command         
         status = execvp(argv[0], &argv[0]);
         if ( status < 0){ 
             //cout << "*** ERROR: exec failed [" << argv[0] <<"]\n";
@@ -262,7 +263,7 @@ int execute(vector<char *> argv,int background)
                 if (WIFEXITED(status))
                 {
                     lastExitStatus = WEXITSTATUS(status);
-                    printf("Exited normally with status %d\n", lastExitStatus);
+                    //printf("Exited normally with status %d\n", lastExitStatus);
                 }
                 else if (WIFSIGNALED(status))
                 {
@@ -282,37 +283,36 @@ int execute(vector<char *> argv,int background)
             }
         }
         else if (background == 1)
-            // is this child pid or parent pid?
-            cout << "\n[" << getpid() << "]" << endl;
+            cout << "[" << pid << "]" << endl;
     }
     
-
-
     return lastExitStatus;
 }
 //zombie handler function
-void handle_zombie() {
+void handle_zombie(int sig) {
     pid_t pid;
     int status;
+    int saved_errno = errno;
     while (1) {
         pid = waitpid(-1, &status, WNOHANG);
         if (pid <= 0) /* No more zombie children to reap. */
-        break;
+            break;
        
-        cout<<"Reaped child:"<< pid<<","<<status<<endl;
+        cout<<"\n["<< pid<<"]: exited, status=" << status + 128 << "\n";
      }
-    sleep(1);
+    errno = saved_errno;
+    //sleep(1);
 } 
 
 int main(){
 
-    cout <<"Welcome to OS SHell\n";
     int linelen, exitStatus = 0;
     char *background;
     string line;
     vector<char*> res;
     
-
+    signal(SIGCHLD, handle_zombie); 
+    cout <<"Welcome to OS SHell\n";
     printPrompt();    
     
     while (getline (cin,line))
@@ -324,7 +324,7 @@ int main(){
             continue;
         }
         
-        line=expandTildeInput(line);
+        line = expandTildeInput(line);
         line = expandEnv(line);
         line = expandStatus(line, exitStatus);
         res = parseLine(line, ' ');
@@ -357,9 +357,6 @@ int main(){
             else{
                exitStatus = execute(res,0);  
             }
-
-              //call for zombie handler
-            handle_zombie();
         
         }
         printPrompt();

@@ -232,8 +232,8 @@ bool changeDir(vector<char *> res){
 
 int execute(vector<char *> argv,int background)
 {
-    pid_t pid;
-    int status, lastExitStatus, errsv;
+    pid_t pid, child;
+    int status, lastExitStatus;
 
     // fork a child process
     pid = fork();
@@ -285,6 +285,13 @@ int execute(vector<char *> argv,int background)
         else if (background == 1)
             cout << "[" << pid << "]" << endl;
     }
+    while ((child = waitpid(-1, &status, WNOHANG)) > 0){
+        if (WIFSIGNALED(status))        {
+            lastExitStatus = WTERMSIG(status) + 128;
+        }
+        cout << "[" << child << "] : exited, status = " << lastExitStatus << endl;
+        
+    }
     
     return lastExitStatus;
 }
@@ -311,7 +318,6 @@ int main(){
     string line;
     vector<char*> res;
     
-    signal(SIGCHLD, handle_zombie); 
     cout <<"Welcome to OS SHell\n";
     printPrompt();    
     

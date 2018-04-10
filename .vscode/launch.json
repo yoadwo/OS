@@ -5,13 +5,32 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Launch",
+            "name": "(gdb) Launch ex2",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/assignments/ex2/bin/shell",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/assignments/ex2/bin",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) Launch ex3",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/assignments/ex3/bin/multi",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/assignments/ex3/bin",
             "environment": [],
             "externalConsole": true,
             "MIMode": "gdb",

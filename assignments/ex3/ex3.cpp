@@ -66,13 +66,12 @@ int setup (int argc, char* argv[], int *nItems, int *nCustomers, int *nWaiters )
 /*  function initDishes: init menu (what dishes and their price)
     inits a vector if Item-class, randomizes price and dishes
 */
-vector<Item> initDishes(vector <string> dishes, vector <Item> items, int nItems){
+void initDishes(vector <string> dishes, vector <Item> *items, int nItems){
     int nDishes = dishes.size();
     for (int i=0; i< nItems; i++)
-        items.push_back((Item(i, rand() % 100 + 1, dishes[rand() % nDishes] )));
-    for (int i=0; i< nItems; i++)
-        items[i].print();
-    return items;
+        (*items).push_back((Item(i, rand() % 100 + 1, dishes[rand() % nDishes] )));
+      for (int i=0; i< nItems; i++)
+          (*items)[i].print();
 }
 
 int main(int argc, char* argv[]){
@@ -83,6 +82,7 @@ int main(int argc, char* argv[]){
     
     int nItems, nCustomers, nWaiters, status;
     vector <Item> items;
+    vector <Order> orders;
 
     //init from command line
     status = setup(argc, argv, &nItems, &nCustomers, &nWaiters);
@@ -90,7 +90,8 @@ int main(int argc, char* argv[]){
         return 1;
 
     //init items on menu
-    items = initDishes(dishes, items, nItems);
+    initDishes(dishes, &items, nItems);
+    
 
     
     cout << "\nPress any key to continue...\n";

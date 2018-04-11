@@ -1,6 +1,3 @@
-#include <stdlib.h>     /* srand, rand */
-#include <time.h>       /* time */
-
 #include <string>
 #include <iostream>
 #include <iomanip>

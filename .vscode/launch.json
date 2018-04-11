@@ -29,7 +29,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/assignments/ex3/bin/ex3",
-            "args": [],
+            "args": ["-i", "5", "-w", "1", "-c", "1"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/assignments/ex3/bin",
             "environment": [],

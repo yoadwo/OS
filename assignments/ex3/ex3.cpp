@@ -4,6 +4,7 @@
 #include <string>  
 
 #include "Item.h"
+#include "Order.h"
 
 using namespace std;
 
@@ -62,11 +63,15 @@ int setup (int argc, char* argv[], int *nItems, int *nCustomers, int *nWaiters )
     return status;
 }
 
+/*  function initDishes: init menu (what dishes and their price)
+    inits a vector if Item-class, randomizes price and dishes
+*/
 vector<Item> initDishes(vector <string> dishes, vector <Item> items, int nItems){
     int nDishes = dishes.size();
     for (int i=0; i< nItems; i++)
         items.push_back((Item(i, rand() % 100 + 1, dishes[rand() % nDishes] )));
-
+    for (int i=0; i< nItems; i++)
+        items[i].print();
     return items;
 }
 

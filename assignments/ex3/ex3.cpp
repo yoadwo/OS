@@ -1,7 +1,10 @@
 #include <iostream>
 #include <vector>
 #include <sstream>
-#include <string>  
+#include <string> 
+#include <iomanip> 
+
+#include <unistd.h>
 
 #include "Item.h"
 #include "Order.h"
@@ -17,15 +20,16 @@ void show_usage(string name){
               << "\t-i\tChoose menu size (max 10)\n"
               << "\t-c\tChoose how many customers (max 10)\n"
               << "\t-w\tChoose how many waiters (max 3)\n"
+              << "\t-w\tChoose simulation time"
               << "\n";
 }
 
-/* function setup: init how many dishes and participants
+/* function setup: init how many dishes, participants and time
     also returns error message if more than allowed maximum
 */
-int setup (int argc, char* argv[], int *nItems, int *nCustomers, int *nWaiters ){
+int setup (int argc, char* argv[], int *nItems, int *nCustomers, int *nWaiters, int *simTime ){
     int status = 0;
-    if (argc < 4) {
+    if (argc < 5) {
         show_usage(argv[0]);
         return 1;
     }
@@ -54,6 +58,12 @@ int setup (int argc, char* argv[], int *nItems, int *nCustomers, int *nWaiters )
                 cerr << "--A maximum of 10 waiters is allowed.\n";
                 status = 1;
             }
+        } else if (arg == "-t") {
+            *simTime = stoi(argv[i+1]);
+            if (*simTime < 1){
+                cerr << "--Simulation time must be a non-negative number.\n";
+                status = 1;
+            }
         } else {
             show_usage(argv[0]);
             status = 1;
@@ -70,8 +80,26 @@ void initDishes(vector <string> dishes, vector <Item> *items, int nItems){
     int nDishes = dishes.size();
     for (int i=0; i< nItems; i++)
         (*items).push_back((Item(i, rand() % 100 + 1, dishes[rand() % nDishes] )));
-      for (int i=0; i< nItems; i++)
-          (*items)[i].print();
+}
+
+void printPrompt(int simTime, int nItems, int nCustomers, int nWaiters, vector <Item> items){
+    cout << "=======Simulation arguments======\n"
+    << "Simulation time: " << simTime << "\n"
+    << "Menu items count: " << nItems << "\n"
+    << "Customers count: " << nCustomers << "\n"
+    << "Waiters count: " << nWaiters << "\n";
+    cout << "=================================\n";
+    cout << "0.00 " << "Main process ID " << getpid() << " start\n";
+    cout << "============Menu list============\n";
+    cout 
+    << left << setw(5) << "Id" 
+    << left << setw(20) << "Name" 
+    << left << setw(8) << "Price" 
+    << left << setw(4) << "Orders\n";
+
+    for (size_t i =0; i < items.size(); i++){
+        items[i].print();
+    }
 }
 
 int main(int argc, char* argv[]){
@@ -80,18 +108,23 @@ int main(int argc, char* argv[]){
         "salad ceaser", "salad green","hamburger bigmac", "hamburger rancho",
         "milkshake strawberry", "milkshake banana" ,"pie apple"  };
     
-    int nItems, nCustomers, nWaiters, status;
+    int nItems, nCustomers, nWaiters, status, simTime;
     vector <Item> items;
     vector <Order> orders;
 
     //init from command line
-    status = setup(argc, argv, &nItems, &nCustomers, &nWaiters);
+    status = setup(argc, argv, &nItems, &nCustomers, &nWaiters, &simTime);
     if (status == 1)
         return 1;
+    
 
     //init items on menu
     initDishes(dishes, &items, nItems);
+    printPrompt(simTime, nItems, nCustomers, nWaiters, items);
     
+    //init orders board (<custumer-id> is arbitrary, <items-id> and <amount> are random)
+    for (int i =0; i< nCustomers; i++)
+        orders.push_back(Order(i, items[rand() % items.size()].getId(), rand() % 10));
 
     
     cout << "\nPress any key to continue...\n";

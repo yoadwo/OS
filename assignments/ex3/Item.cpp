@@ -28,8 +28,11 @@ string Item :: getName(){
 }
 void Item :: print()
 {
-    cout << "[" << _id << "] " << _name << ", $" << _price 
-    << ", total Ordered " << _totalOrdered << "\n";     
+    cout  
+    << left << "[" << setw(2) << _id << "] "
+    << left << setw(20) <<_name
+    << left << setw(8) << _price 
+    << left << setw(4) << _totalOrdered  << "\n";     
  
 }
  

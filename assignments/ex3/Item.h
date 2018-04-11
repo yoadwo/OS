@@ -1,19 +1,21 @@
 #ifndef ITEM_H
 #define ITEM_H
 
+using namespace std;
+
 class Item
 {
      private :
           int _id, _price, _totalOrdered;
-          char _name[15];
+          string _name;
      public :
        //with default value
-       Item(int id, int price, int totalOrdered = 0);
+       Item(int id, int price, string name);
        //getter functions
        int getId();
        int getPrice();
        int getTotalOrdered();
-       char* getName();
+       string getName();
        // Print a description of object
        void print();
        //compare two time object

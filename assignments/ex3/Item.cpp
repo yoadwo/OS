@@ -1,11 +1,19 @@
+#include <stdlib.h>     /* srand, rand */
+#include <time.h>       /* time */
+
+#include <string>
 #include <iostream>
 #include <iomanip>
 #include "Item.h"
 using namespace std;
  
-Item :: Item(int id, int price, int totalOrdered = 0) 
-  : _id(id), _price (price), _totalOrdered(totalOrdered)
-{}
+
+Item :: Item(int id, int price, string name) 
+  : _id(id), _price (price), _totalOrdered(0)
+{
+    
+    _name = name.substr(0,15);
+}
  
 int Item :: getId() 
 {
@@ -18,12 +26,13 @@ int Item :: getPrice(){
 int Item :: getTotalOrdered(){
     return _totalOrdered;
 }
-char* Item :: getName(){
+string Item :: getName(){
     return _name;
 }
 void Item :: print()
 {
-     
+    cout << "[" << _id << "] " << _name << ", $" << _price 
+    << ", total Ordered " << _totalOrdered << "\n";     
  
 }
  

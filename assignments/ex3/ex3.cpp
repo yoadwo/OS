@@ -9,12 +9,8 @@
 #include "Item.h"
 #include "Order.h"
 #include "Customer.h"
+
 using namespace std;
-
-
-
-
-
 
 
 int semid_ResourceAccessItems;
@@ -141,6 +137,70 @@ int setup (int argc, char* argv[], int *nItems, int *nCustomers, int *nWaiters, 
     }
 
     return status;
+}
+
+
+int initsem(key_t semkey)
+{
+    int status = 0, semid;
+    union semun{
+        int val;
+        struct semid_ds *stat;
+        ushort *array;
+    } ctl_arg;
+    
+    // semget (key, nsems, semflag)
+    if(( semid = semget(semkey, 1, SEMPERM | IPC_CREAT | IPC_EXCL )) == -1 )
+    {
+        if( errno == EEXIST )
+        {
+            semid = semget( semkey, 1, 0 );
+            if (semid == -1){
+                cerr << "Error creating semaphores\n";
+                status = -1;
+            }
+        } else {
+            cerr << "Error creating semaphores\n";
+            status = -1;
+        }
+
+    }
+    else
+    {
+        ctl_arg.val = 1;
+        status = semctl(semid, 0, SETVAL, ctl_arg);
+    }
+    
+    if( semid == -1 || status == -1 )
+    {
+        cerr << "Error initsem\n";
+        exit(-1);
+    }
+    return semid;
+}
+
+void initSemaphores(){
+    key_t semkey_ResourceAccessItems = ftok(".",'a');
+    key_t semkey_ReadCountAccessItems = ftok(".",'b');
+    key_t semkey_ServiceQueueItems = ftok(".",'c');
+    key_t semkey_ResourceAccessCustomer = ftok(".",'d');
+    key_t semkey_ReadCountAccessCustomer = ftok(".",'e');
+    key_t semkey_ServiceQueueCustomer = ftok(".",'f');
+    key_t semkey_ResourceAccessOrder = ftok(".",'g');
+    key_t semkey_ReadCountAccessOrder = ftok(".",'h');
+    key_t semkey_ServiceQueueOrder = ftok(".",'i');
+    key_t semkey_OutputSemaphore = ftok(".",'j');
+
+    semid_ResourceAccessMenu = initsem(semkey_ResourceAccessItems);
+    semid_ReadCountAccessMenu = initsem(semkey_ReadCountAccessItems);
+    semid_ServiceQueueMenu = initsem(semkey_ServiceQueueItems);
+    semid_ResourceAccessCustomer = initsem(semkey_ResourceAccessCustomer);
+    semid_ReadCountAccessCustomer = initsem(semkey_ReadCountAccessCustomer);
+    semid_ServiceQueueCustomer = initsem(semkey_ServiceQueueCustomer);
+    semid_ResourceAccessOrder = initsem(semkey_ResourceAccessOrder);
+    semid_ReadCountAccessOrder = initsem(semkey_ReadCountAccessOrder);
+    semid_ServiceQueueOrder = initsem(semkey_ServiceQueueOrder);
+    semid_outputSemaphore = initsem(semkey_OutputSemaphore);
 }
 
 /*  function initDishes: init menu (what dishes and their price)

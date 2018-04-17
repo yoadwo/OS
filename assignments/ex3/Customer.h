@@ -3,8 +3,6 @@
 
 #include <vector>
 #include "Item.h"
-
-
 using namespace std;
 
 class Customer
@@ -16,7 +14,7 @@ public:
 
     Customer(int custId);
 
-     chooseItem(vector <Item> items);
+    void chooseItem(vector <Item> items);
 
 
 

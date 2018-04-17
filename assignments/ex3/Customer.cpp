@@ -5,7 +5,10 @@
 
 
 
-Customer :: Customer(int custId): _customerId(custId){}
+Customer :: Customer(int custId) 
+    : _customerId(custId)
+{
+}
 
 
 

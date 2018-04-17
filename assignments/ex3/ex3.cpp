@@ -8,8 +8,25 @@
 
 #include "Item.h"
 #include "Order.h"
-
+#include "Customer.h"
 using namespace std;
+
+
+
+
+
+
+
+int semid_ResourceAccessItems;
+int semid_ReadCountAccessItems;
+int semid_ServiceQueueItems;
+int semid_ResourceAccessCustomer;
+int semid_ReadCountAccessCustomer;
+int semid_ServiceQueueCustomer;
+int semid_ResourceAccessOrder;
+int semid_ReadCountAccessOrder;
+int semid_ServiceQueueOrder;
+int semid_outputSemaphore;
 
 /*  function show_usage: print usage instructions
     when enters program
@@ -27,6 +44,19 @@ void show_usage(string name){
 /* function setup: init how many dishes, participants and time
     also returns error message if more than allowed maximum
 */
+
+vector <Customer> initCustomers(nCustomers){
+    vector <Customer> c;
+
+
+    for(i=0;i<=nCustomers;i++){
+      c.push_back(Customer(i));
+    }  
+    return c;
+
+}
+
+
 int setup (int argc, char* argv[], int *nItems, int *nCustomers, int *nWaiters, int *simTime ){
     int status = 0;
     if (argc < 5) {
@@ -102,6 +132,10 @@ void printPrompt(int simTime, int nItems, int nCustomers, int nWaiters, vector <
     }
 }
 
+
+
+
+
 int main(int argc, char* argv[]){
     //init menu
     vector <string> dishes = {"pizza onions", "pizza tomatoes", "pizza mozzarella",
@@ -111,7 +145,7 @@ int main(int argc, char* argv[]){
     int nItems, nCustomers, nWaiters, status, simTime;
     vector <Item> items;
     vector <Order> orders;
-
+    vector <Customer> customers;
     //init from command line
     status = setup(argc, argv, &nItems, &nCustomers, &nWaiters, &simTime);
     if (status == 1)
@@ -121,10 +155,11 @@ int main(int argc, char* argv[]){
     //init items on menu
     initDishes(dishes, &items, nItems);
     printPrompt(simTime, nItems, nCustomers, nWaiters, items);
-    
+    customers=initCustomers(nCustomers);
+    placeOrder(&customers,&Items);
     //init orders board (<custumer-id> is arbitrary, <items-id> and <amount> are random)
-    for (int i =0; i< nCustomers; i++)
-        orders.push_back(Order(i, items[rand() % items.size()].getId(), rand() % 10));
+   /* for (int i =0; i< nCustomers; i++)
+        orders.push_back(Order(i, items[rand() % items.size()].getId(), rand() % 10));*/
 
     
     cout << "\nPress any key to continue...\n";

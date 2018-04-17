@@ -1,6 +1,8 @@
 #ifndef CUSTOMER_H
 #define CUSTOMER_H
 
+#include <vector>
+#include "Item.h"
 
 
 using namespace std;
@@ -14,7 +16,7 @@ public:
 
     Customer(int custId);
 
-    void Customer :: chooseItem(vector <Item> items);
+     chooseItem(vector <Item> items);
 
 
 

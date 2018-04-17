@@ -3,8 +3,21 @@
 #include <sstream>
 #include <string> 
 #include <iomanip> 
+#include <ctime>
+#include <chrono>
+#include <thread>
+#include <cstdlib>
 
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+
+#define SEMPERM 0600
+
 
 #include "Item.h"
 #include "Order.h"
@@ -81,8 +94,9 @@ void show_usage(string name){
     also returns error message if more than allowed maximum
 */
 
-vector <Customer> initCustomers(nCustomers){
+vector <Customer> initCustomers(int nCustomers){
     vector <Customer> c;
+    int i;
 
 
     for(i=0;i<=nCustomers;i++){
@@ -191,9 +205,9 @@ void initSemaphores(){
     key_t semkey_ServiceQueueOrder = ftok(".",'i');
     key_t semkey_OutputSemaphore = ftok(".",'j');
 
-    semid_ResourceAccessMenu = initsem(semkey_ResourceAccessItems);
-    semid_ReadCountAccessMenu = initsem(semkey_ReadCountAccessItems);
-    semid_ServiceQueueMenu = initsem(semkey_ServiceQueueItems);
+    semid_ResourceAccessItems = initsem(semkey_ResourceAccessItems);
+    semid_ReadCountAccessItems = initsem(semkey_ReadCountAccessItems);
+    semid_ServiceQueueItems = initsem(semkey_ServiceQueueItems);
     semid_ResourceAccessCustomer = initsem(semkey_ResourceAccessCustomer);
     semid_ReadCountAccessCustomer = initsem(semkey_ReadCountAccessCustomer);
     semid_ServiceQueueCustomer = initsem(semkey_ServiceQueueCustomer);
@@ -256,7 +270,8 @@ int main(int argc, char* argv[]){
     initDishes(dishes, &items, nItems);
     printPrompt(simTime, nItems, nCustomers, nWaiters, items);
     customers=initCustomers(nCustomers);
-    placeOrder(&customers,&Items);
+    
+
     //init orders board (<custumer-id> is arbitrary, <items-id> and <amount> are random)
    /* for (int i =0; i< nCustomers; i++)
         orders.push_back(Order(i, items[rand() % items.size()].getId(), rand() % 10));*/

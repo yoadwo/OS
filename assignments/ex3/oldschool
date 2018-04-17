@@ -1,0 +1,544 @@
+#include <iostream>
+#include <string>
+#include <ctime>
+#include <cstdlib>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+#include <iomanip>
+#include <chrono>
+#include <thread>
+#define SEMPERM 0600
+
+using namespace std;
+using namespace chrono;
+
+struct Dish {
+    int id;
+    string name;
+    float price;
+    int orders;
+};
+
+struct Order {
+    int customerId;
+    int itemId;
+    int amount;
+    bool done;
+};
+
+typedef union _semun
+{
+    int val;
+    struct semid_ds *buf;
+    unsigned short *array;
+}semunn;
+
+int semid_ResourceAccessMenu;
+int semid_ReadCountAccessMenu;
+int semid_ServiceQueueMenu;
+int semid_ResourceAccessCustomer;
+int semid_ReadCountAccessCustomer;
+int semid_ServiceQueueCustomer;
+int semid_ResourceAccessOrder;
+int semid_ReadCountAccessOrder;
+int semid_ServiceQueueOrder;
+int semid_ScreenSemaphore;
+
+void startScreen(int*, Dish*);
+void reportScreen(int*, Dish*);
+Dish* createMenu(int*, int*);
+Order* createOrdersBoard(int*, int*);
+bool* createCustomerIsAlive(int*, int*);
+int* createCountersArray(int*);
+void deleteSharedMemory(int, int, int, int);
+void deleteSemaphore();
+bool checkArguments(int argc, const char * argv[], int *arr);
+void createCustomersAndWaiters(int*, Dish*, Order*, bool*, int*);
+void customerActions(int, int*, Dish*, Order*, int*);
+void waiterActions(int, int*, Dish*, Order*);
+bool customerIsAlive(bool*, int*, int*);
+int p(int);
+int v(int);
+int initsem(key_t);
+
+auto startTime = high_resolution_clock::now();
+
+int main(int argc, const char * argv[])
+{
+    int argumentsArray[4];
+    int segmentId_DishMenu;
+    int segmentId_OrdersBoard;
+    int segmentId_CustomerIsAlive;
+    int segmentId_Counters;
+    
+    key_t semkey_ResourceAccessMenu = ftok(".",'a');
+    key_t semkey_ReadCountAccessMenu = ftok(".",'b');
+    key_t semkey_ServiceQueueMenu = ftok(".",'c');
+    key_t semkey_ResourceAccessCustomer = ftok(".",'d');
+    key_t semkey_ReadCountAccessCustomer = ftok(".",'e');
+    key_t semkey_ServiceQueueCustomer = ftok(".",'f');
+    key_t semkey_ResourceAccessOrder = ftok(".",'g');
+    key_t semkey_ReadCountAccessOrder = ftok(".",'h');
+    key_t semkey_ServiceQueueOrder = ftok(".",'i');
+    key_t semkey_ScreenSemaphore = ftok(".",'j');
+    
+    Order* ordersBoard = NULL;
+    Dish* menu = NULL;
+    bool* customers = NULL;
+    int* counters = NULL;
+    
+    srand((unsigned int)time(NULL));
+    if(checkArguments(argc,argv,argumentsArray))
+    {
+        menu = createMenu(argumentsArray,&segmentId_DishMenu);
+        startScreen(argumentsArray,menu);
+        ordersBoard = createOrdersBoard(argumentsArray,&segmentId_OrdersBoard);
+        customers = createCustomerIsAlive(argumentsArray,&segmentId_CustomerIsAlive);
+        counters = createCountersArray(&segmentId_Counters);
+        
+        semid_ResourceAccessMenu = initsem(semkey_ResourceAccessMenu);
+        semid_ReadCountAccessMenu = initsem(semkey_ReadCountAccessMenu);
+        semid_ServiceQueueMenu = initsem(semkey_ServiceQueueMenu);
+        semid_ResourceAccessCustomer = initsem(semkey_ResourceAccessCustomer);
+        semid_ReadCountAccessCustomer = initsem(semkey_ReadCountAccessCustomer);
+        semid_ServiceQueueCustomer = initsem(semkey_ServiceQueueCustomer);
+        semid_ResourceAccessOrder = initsem(semkey_ResourceAccessOrder);
+        semid_ReadCountAccessOrder = initsem(semkey_ReadCountAccessOrder);
+        semid_ServiceQueueOrder = initsem(semkey_ServiceQueueOrder);
+        semid_ScreenSemaphore = initsem(semkey_ScreenSemaphore);
+        
+        createCustomersAndWaiters(argumentsArray, menu, ordersBoard, customers, counters);
+        reportScreen(argumentsArray, menu);
+        deleteSharedMemory(segmentId_DishMenu, segmentId_OrdersBoard, segmentId_CustomerIsAlive, segmentId_Counters);
+        deleteSemaphore();
+    }
+    else
+    {
+        cerr << "Input arguments are not valid!" << endl;
+    }
+    return 0;
+}
+
+void startScreen(int* args,Dish* menu)
+{
+    cout << "====== Simulation Arguments =======" << endl;
+    cout << "Simulation time : " << args[0] << endl;
+    cout << "Menu items count : " << args[1] << endl;
+    cout << "Customers count : " << args[2] << endl;
+    cout << "Waiters count : " << args[3] << endl;
+    cout << "===================================" << endl;
+    cout << fixed << setprecision(3) << duration<double, milli>(high_resolution_clock::now() - startTime).count() / 1000 << " Main process ID " << getpid() << " start"<< endl;
+    cout << "=========== Menu List =============" << endl;
+    cout << left << setw(5) << "Id" << setw(13) << "Name" << setw(10) << "Price" << setw(5) << "Orders" << endl;
+    
+    for(int i=0; i < args[1]; i++)
+    {
+        cout << fixed << setprecision(2) << setw(5) << menu[i].id << setw(13) << menu[i].name << setw(10) << menu[i].price <<setw(5) << menu[i].orders << endl;
+    }
+    cout << "===================================" << endl;
+}
+
+void reportScreen(int* args,Dish* menu)
+{
+    int amountOfOrders = 0;
+    float totalProfit = 0;
+    
+    cout << "=========== Menu List =============" << endl;
+    cout << left << setw(5) << "Id" << setw(13) << "Name" << setw(10) << "Price" << setw(5) << "Orders" << endl;
+    for(int i=0; i < args[1]; i++)
+    {
+        totalProfit += menu[i].price * menu[i].orders;
+        amountOfOrders += menu[i].orders;
+        cout << fixed << setprecision(2) << setw(5) << menu[i].id << setw(13) << menu[i].name << setw(10) << menu[i].price <<setw(5) << menu[i].orders << endl;
+    }
+    cout << "===================================" << endl;
+    cout << "Total Orders : " << amountOfOrders << " , for an amount : " << totalProfit << " NIS" << endl;
+    cout << fixed << setprecision(3) << duration<double, milli>(high_resolution_clock::now() - startTime).count() / 1000 << " Main process ID " << getpid() << " end work"<< endl;
+    cout << duration<double, milli>(high_resolution_clock::now() - startTime).count() / 1000 << " End of simulation"<< endl;
+}
+
+bool checkArguments(int argc, const char * argv[], int* arr)
+{
+    if(argc!= 5)
+    {
+        return false;
+    }
+    else
+    {
+        for(unsigned int i=1; i<5; i++)
+            if(!atoi(argv[i]))
+                return false;
+            else
+            {
+                arr[i-1] = atoi(argv[i]);
+                if (arr[i-1] < 1)
+                    return false;
+            }
+    }
+    if(arr[1] < 5 || arr[1] > 7)
+        return false;
+    return true;
+}
+
+Order* createOrdersBoard(int* args, int* segmentId)
+{
+    Order* ordersBoard;
+    if((*segmentId = shmget(IPC_PRIVATE, sizeof(Order) * args[2], 0644 | IPC_CREAT))==-1)
+    {
+        cerr << "Shared memory segment exists" << endl;
+        exit(1);
+    }
+    else
+    {
+        ordersBoard = new (shmat (*segmentId,0, 0)) Order;
+        for(int i=0; i < args[2]; i++)
+        {
+            ordersBoard[i].customerId = i;
+            ordersBoard[i].amount = 0;
+            ordersBoard[i].itemId = 0;
+            ordersBoard[i].done = true;
+        }
+    }
+    return ordersBoard;
+}
+
+bool* createCustomerIsAlive(int* args,int* segmentId)
+{
+    bool* customers;
+    
+    if((*segmentId = shmget(IPC_PRIVATE, sizeof(bool) * args[2], 0644 | IPC_CREAT))==-1)
+    {
+        cerr << "Shared memory segment exists" << endl;
+        exit(1);
+    }
+    else
+    {
+        customers = new (shmat (*segmentId,0, 0)) bool;
+        
+        for(int i=0; i < args[2]; i++)
+        {
+            customers[i]=true;
+        }
+    }
+    return customers;
+}
+
+int* createCountersArray(int* segmentId)
+{
+    int* counters;
+    
+    if((*segmentId = shmget(IPC_PRIVATE, sizeof(int) * 3, 0644 | IPC_CREAT))==-1)
+    {
+        cerr << "Shared memory segment exists" << endl;
+        exit(1);
+    }
+    else
+    {
+        counters = new (shmat (*segmentId,0, 0)) int;
+        
+        for(int i=0; i < 3; i++)
+        {
+            counters[i] = 0;
+        }
+    }
+    return counters;
+}
+
+Dish* createMenu(int* args, int* segmentId)
+{
+    Dish* menu;
+    Dish Menu[] = {{1,"Pizza",10,0},{2,"Salad",7.5,0},{3,"Hamburger",12,0},{4,"Spaghetti",9,0},{5,"Pie",9.5,0},{6,"Milkshake",6,0},{7,"Beer",5,0}};
+    
+    if((*segmentId = shmget(IPC_PRIVATE, sizeof(Dish) * args[1], 0644 | IPC_CREAT))==-1)
+    {
+        cerr << "Shared memory segment exists" << endl;
+        exit(1);
+    }
+    else
+    {
+        menu = new (shmat (*segmentId,0, 0)) Dish;
+        for(int i=0; i < args[1]; i++)
+        {
+            menu[i].id = Menu[i].id;
+            menu[i].name = Menu[i].name;
+            menu[i].price = Menu[i].price;
+            menu[i].orders = Menu[i].orders;
+        }
+    }
+    return menu;
+}
+
+void deleteSharedMemory(int segmentId_Menu, int segmentId_Orders, int segmentId_Customers, int segmentId_Counters)
+{
+    shmctl(segmentId_Menu, IPC_RMID, NULL);
+    shmctl(segmentId_Orders, IPC_RMID, NULL);
+    shmctl(segmentId_Customers, IPC_RMID, NULL);
+    shmctl(segmentId_Counters, IPC_RMID, NULL);
+
+}
+
+void createCustomersAndWaiters(int* args, Dish* menu, Order* ordersBoard, bool* customers, int* counters)
+{
+    int status;
+    pid_t childPid;
+    
+    cout << setprecision(3) << duration<double, milli>(high_resolution_clock::now() - startTime).count() / 1000 << setw(5) << " Main process start creating sub-process "<< endl;
+    
+    for(int i=0; i < args[2]+args[3]; i++)
+    {
+        childPid = fork();
+        if(childPid < 0)
+        {
+            cerr << "Error. Cannot create child proccess." << endl;
+            exit(1);
+        }
+        else if(childPid == 0)
+        {
+            if(i < args[2])
+            {
+            	p(semid_ScreenSemaphore);
+                cout << duration<double, milli>(high_resolution_clock::now()-startTime).count()/1000 << setw(5) << " Customer "<< i << ": Created PID " << getpid() << " PPID " << getppid() << endl;
+                v(semid_ScreenSemaphore);
+
+                while(args[0] >= duration<double, milli>(high_resolution_clock::now()-startTime).count()/1000)
+                {
+                    srand((unsigned)time(NULL) * getpid());
+                    sleep(rand()%(6-3+1)+3);
+
+                    p(semid_ServiceQueueOrder);
+                    p(semid_ReadCountAccessOrder);
+                    if(counters[1] == 0)
+                        p(semid_ResourceAccessOrder);
+                    counters[1]++;
+                    v(semid_ServiceQueueOrder);
+                    v(semid_ReadCountAccessOrder);
+                    bool flag = ordersBoard[i].done;
+                    p(semid_ReadCountAccessOrder);
+                    counters[1]--;
+                    if(counters[1] == 0)
+                        v(semid_ResourceAccessOrder);
+                    v(semid_ReadCountAccessOrder);
+                    
+                    if(flag)
+                        customerActions(i, args, menu, ordersBoard, counters);
+                }
+                
+                p(semid_ServiceQueueCustomer);
+                p(semid_ResourceAccessCustomer);
+                v(semid_ServiceQueueCustomer);
+                customers[i] = false;
+                v(semid_ResourceAccessCustomer);
+                
+                p(semid_ScreenSemaphore);
+                cout<< duration<double, milli>(high_resolution_clock::now()-startTime).count()/1000
+                << " Customer ID "<< i <<": PID "<< getpid() << " end work PPID "<< getppid() << endl;
+                v(semid_ScreenSemaphore);
+            }
+            else
+            {
+            	p(semid_ScreenSemaphore);
+                cout << duration<double, milli>(high_resolution_clock::now()-startTime).count()/1000 << setw(5) << " Waiter "<< i - args[2] << ": Created PID " << getpid() << " PPID " << getppid() << endl;
+                v(semid_ScreenSemaphore);
+
+                while(args[0] >= duration<double, milli>(high_resolution_clock::now()-startTime).count()/1000 || customerIsAlive(customers,args, counters))
+                {
+                    waiterActions(i - args[2],args,menu,ordersBoard);
+                }
+                
+                p(semid_ScreenSemaphore);
+                cout<< duration<double, milli>(high_resolution_clock::now()-startTime).count()/1000
+                << " Waiter ID "<<i-args[2]<<": PID "<<getpid()<< " end work PPID "<<getppid()<<endl;
+                v(semid_ScreenSemaphore);
+            }
+            exit(0);
+        }
+    }
+    while(wait(&status)>0);
+}
+
+bool customerIsAlive(bool* customerIsAlive, int* args, int* counters)
+{
+    bool flag = false;
+    p(semid_ServiceQueueCustomer);
+    p(semid_ReadCountAccessCustomer);
+    if(counters[2] == 0)
+        p(semid_ResourceAccessCustomer);
+    counters[2]++;
+    v(semid_ServiceQueueCustomer);
+    v(semid_ReadCountAccessCustomer);
+    for(int i=0; i < args[2]; i++)
+    {
+        if(customerIsAlive[i])
+        {
+            flag = true;
+            break;
+        }
+    }
+    p(semid_ReadCountAccessCustomer);
+    counters[2]--;
+    if(counters[2] == 0)
+        v(semid_ResourceAccessCustomer);
+    v(semid_ReadCountAccessCustomer);
+    return flag;
+}
+
+void customerActions(int id, int* args, Dish* menu,Order* ordersBoard, int* counters)
+{
+	string itemName;
+    srand((unsigned) time(NULL) * getpid());
+    p(semid_ServiceQueueMenu);
+    p(semid_ReadCountAccessMenu);
+
+    if(counters[0] == 0)
+        p(semid_ResourceAccessMenu);
+    counters[0]++;
+
+    v(semid_ServiceQueueMenu);
+    v(semid_ReadCountAccessMenu);
+
+    sleep(1);
+    int item = rand()%((args[1]-1)-0+1);
+    itemName = menu[item].name;
+
+    p(semid_ReadCountAccessMenu);
+    counters[0]--;
+
+    if(counters[0] == 0)
+        v(semid_ResourceAccessMenu);
+    v(semid_ReadCountAccessMenu);
+
+    if(rand()%(2) == 1)
+    {
+        int amount = rand()%(4-1+1)+1;
+
+        p(semid_ScreenSemaphore);
+        cout << duration<double, milli>(high_resolution_clock::now() - startTime).count() / 1000
+             << " Customer ID " << id << ": reads a menu about " << itemName << " (ordered, amount "<< amount <<")"<<endl;
+        v(semid_ScreenSemaphore);
+
+        p(semid_ServiceQueueOrder);
+        p(semid_ResourceAccessOrder);
+        v(semid_ServiceQueueOrder);
+        ordersBoard[id].itemId = item;
+        ordersBoard[id].amount = amount;
+        ordersBoard[id].done = false;
+        v(semid_ResourceAccessOrder);
+    }
+    else
+    {
+    	p(semid_ScreenSemaphore);
+        cout << duration<double, milli>(high_resolution_clock::now() - startTime).count() / 1000
+             << " Customer ID "<< id <<": reads a menu about "<< itemName <<" (does't want to order)"<<endl;
+        v(semid_ScreenSemaphore);
+    }
+}
+
+void waiterActions(int id, int* args, Dish* menu, Order* ordersBoard)
+{
+    srand((unsigned) time(NULL) * getpid());
+    sleep(rand()%(2)+1);
+    string itemName;
+
+    p(semid_ServiceQueueOrder);
+    p(semid_ResourceAccessOrder);
+    v(semid_ServiceQueueOrder);
+
+    for(int i=0; i < args[2]; i++)
+    {
+        if(!ordersBoard[i].done)
+        {
+            p(semid_ServiceQueueMenu);
+            p(semid_ResourceAccessMenu);
+            v(semid_ServiceQueueMenu);
+
+            menu[ordersBoard[i].itemId].orders += ordersBoard[i].amount;
+            itemName = menu[ordersBoard[i].itemId].name;
+            v(semid_ResourceAccessMenu);
+            ordersBoard[i].done = true;
+
+            p(semid_ScreenSemaphore);
+            cout << duration<double, milli>(high_resolution_clock::now() - startTime).count() / 1000
+                 <<" Waiter ID "<< id <<": performs the order of customer ID "<< ordersBoard[i].customerId
+                 <<" (" <<ordersBoard[i].amount << " " << itemName << ")" << endl;
+            v(semid_ScreenSemaphore);
+            break;
+        }
+    }
+    v(semid_ResourceAccessOrder);
+}
+
+int p(int semid)
+{
+    struct sembuf p_buf;
+    p_buf.sem_num = 0;
+    p_buf.sem_op = -1;
+    p_buf.sem_flg = SEM_UNDO;
+    
+    if( semop(semid, &p_buf, 1) == -1 )
+    {
+        cerr << ("Error operation p(semid)") << endl;
+        exit(1);
+    }
+    return 0;
+}
+
+int v(int semid)
+{
+    struct sembuf v_buf;
+    v_buf.sem_num = 0;
+    v_buf.sem_op = 1;
+    v_buf.sem_flg = SEM_UNDO;
+    
+    if( semop(semid, &v_buf, 1) == -1 )
+    {
+        cerr << "Error operation v(semid)" << endl;
+        exit(1);
+    }
+    return 0;
+}
+
+int initsem(key_t semkey)
+{
+    int status = 0, semid;
+    
+    if(( semid = semget(semkey, 1, SEMPERM | IPC_CREAT | IPC_EXCL )) == -1 )
+    {
+        if( errno == EEXIST )
+        {
+            semid = semget( semkey, 1, 0 );
+        }
+    }
+    else
+    {
+        union _semun arg;
+        arg.val = 1;
+        status = semctl(semid, 0, SETVAL, arg);
+    }
+    
+    if( semid == -1 || status == -1 )
+    {
+        cerr << "Error initsem" << endl;
+        exit(-1);
+    }
+    return semid;
+}
+
+void deleteSemaphore()
+{
+	semctl(semid_ResourceAccessMenu, 0, IPC_RMID, NULL);
+	semctl(semid_ReadCountAccessMenu, 0, IPC_RMID, NULL);
+	semctl(semid_ServiceQueueMenu, 0, IPC_RMID, NULL);
+	semctl(semid_ResourceAccessCustomer, 0, IPC_RMID, NULL);
+	semctl(semid_ReadCountAccessCustomer, 0, IPC_RMID, NULL);
+	semctl(semid_ServiceQueueCustomer, 0, IPC_RMID, NULL);
+	semctl(semid_ResourceAccessOrder, 0, IPC_RMID, NULL);
+	semctl(semid_ReadCountAccessOrder, 0, IPC_RMID, NULL);
+	semctl(semid_ServiceQueueOrder, 0, IPC_RMID, NULL);
+	semctl(semid_ScreenSemaphore, 0, IPC_RMID, NULL);
+}
+

@@ -24,6 +24,8 @@
         "sstream": "cpp",
         "bitset": "cpp",
         "array": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "cerrno": "cpp",
+        "chrono": "cpp"
     }
 }

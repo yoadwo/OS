@@ -8,6 +8,7 @@
 #include <thread>
 #include <cstdlib>
 
+#include <math.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/shm.h>
@@ -111,7 +112,7 @@ vector <Customer> initCustomers(int nCustomers){
 /* function setup: parse arguments into variables
     quits and shows prompt for wrong usage
 */
-int setup (int argc, char* argv[], int *nItems, int *nCustomers, int *nWaiters, int *simTime ){
+int setup (int argc, char* argv[], int *nItems, int *nCustomers, int *nWaiters, double *simTime ){
     int status = 0;
     if (argc < 5) {
         show_usage(argv[0]);
@@ -330,7 +331,7 @@ Order* createOrders(int* segmentId)
 /* function printPrompt: display program arguments summary
     display simulation time, num customers, num waiters, what items were chosen
 */
-void printPrompt(int simTime, int nItems, int nCustomers, int nWaiters, Item* items){
+void printPrompt(double simTime, int nItems, int nCustomers, int nWaiters, Item* items){
     cout << "=======Simulation arguments======\n"
     << "Simulation time: " << simTime << "\n"
     << "Menu items count: " << nItems << "\n"
@@ -348,13 +349,46 @@ void printPrompt(int simTime, int nItems, int nCustomers, int nWaiters, Item* it
     for (int i =0; i < nItems; i++){
         items[i].print();
     }
+    cout << "\n=================================\n";
+}
+
+/* function ManagerProcess: begin simulation of customers and waiters 
+    while sim time not ended, customers() and waiters() read\write from memory
+*/
+void ManagerProcess(double simTime, Item* items, int nItems, Order* orders, 
+    int *ordersCounter, int nCustomers, int nWaiters){
+    auto start = chrono::high_resolution_clock::now();
+    pid_t childpid;
+    int i;
+    for (i = 0; i < nCustomers + nWaiters;  ++i){
+        childpid = fork();
+
+        if ( childpid == 0 )
+        {
+        break;
+        }
+    }
+    auto elapsed =  chrono::high_resolution_clock::now() - start; 
+    auto milliseconds = chrono::duration_cast<chrono::milliseconds>(elapsed);
+    cout
+    << floor(milliseconds.count() / 1000)  << "." << milliseconds.count() % 1000
+    <<" Customer: " << i
+    <<" created PID " << getpid()
+    <<" PPID " <<getppid() << "\n";
+    while ( ( wait(NULL) != -1 && errno == ECHILD ) );
+
+    while ( (chrono::high_resolution_clock::now() - start).count() < simTime){
+
+        
+    }
 }
 
 int main(int argc, char* argv[]){
     //init menu
 
     
-    int nItems, nCustomers, nWaiters, status, simTime, ordersCounter = 0;
+    int nItems, nCustomers, nWaiters, status, ordersCounter = 0;
+    double simTime;
     Item* items;
     Order* orders;
     vector <Customer> customers;
@@ -376,8 +410,8 @@ int main(int argc, char* argv[]){
     }
     
     printPrompt(simTime, nItems, nCustomers, nWaiters, items);
-    customers=initCustomers(nCustomers);
     
+    ManagerProcess(simTime, items, nItems, orders, &ordersCounter, nCustomers, nWaiters);
 
     
     cout << "\nPress any key to continue...\n";

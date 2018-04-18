@@ -16,12 +16,13 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 
-#define SEMPERM 0600
-
 
 #include "Item.h"
 #include "Order.h"
 #include "Customer.h"
+
+#define SEMPERM 0600
+#define MAX_ORDERS 256
 
 using namespace std;
 
@@ -37,7 +38,15 @@ int semid_ReadCountAccessOrder;
 int semid_ServiceQueueOrder;
 int semid_outputSemaphore;
 
+int segmentId_Items;
+int segmentId_OrdersBoard;
+int segmentId_Customers;
+int segmentId_Waiters;
 
+
+/* function p: lower semaphore value
+    copy from lab
+*/
 int p(int semid)
 {
     struct sembuf p_buf;
@@ -53,6 +62,9 @@ int p(int semid)
     return 0;
 }
 
+/* function V: increase semaphore value
+    copy from lab
+*/
 int v(int semid)
 {
     struct sembuf v_buf;
@@ -67,14 +79,6 @@ int v(int semid)
     }
     return 0;
 }
-
-
-
-
-
-
-
-
 
 
 /*  function show_usage: print usage instructions
@@ -153,7 +157,10 @@ int setup (int argc, char* argv[], int *nItems, int *nCustomers, int *nWaiters, 
     return status;
 }
 
-
+/* function initsem: inits a semaphore with value 1
+    creates a semaphore array with a single element with a value of 1
+    input: recieves a hashed key (key_t: semkey) and returns a semaphore id
+*/
 int initsem(key_t semkey)
 {
     int status = 0, semid;
@@ -217,16 +224,53 @@ void initSemaphores(){
     semid_outputSemaphore = initsem(semkey_OutputSemaphore);
 }
 
+
+Item* createItems(int nItems, int* segmentId)
+{
+    vector <string> dishes = {"pizza onions", "pizza tomatoes", "pizza mozzarella",
+        "salad ceaser", "salad green","hamburger bigmac", "hamburger rancho",
+        "milkshake strawberry", "milkshake banana" ,"pie apple"  };
+    Item* items;
+    int nDishes = dishes.size();
+    
+    if((*segmentId = shmget(IPC_PRIVATE, sizeof(Item) * nItems, 0644 | IPC_CREAT))==-1)
+    {
+        cerr << "Shared memory segment exists" << endl;
+        exit(1);
+    }
+    else
+    {
+        //menu = new (shmat (*segmentId,0, 0)) Dish;
+        if ((items = (Item*)shmat (*segmentId,0,0)) == (void*)-1){
+            cerr << "Shared memory attach failed\n";
+            return NULL;
+        }
+
+        for(int i=0; i < nItems; i++)
+        {
+            items[i] = Item(i, rand() % 100 + 1, dishes[rand() % nDishes] );
+        }
+    }
+
+    // for (int i=0; i< nItems; i++)
+    //     (*items).push_back((Item(i, rand() % 100 + 1, dishes[rand() % nDishes] )));
+
+    return items;
+}
+
 /*  function initDishes: init menu (what dishes and their price)
     inits a vector if Item-class, randomizes price and dishes
 */
-void initDishes(vector <string> dishes, vector <Item> *items, int nItems){
+void initItems(vector <string> dishes, vector <Item> *items, int nItems){
     int nDishes = dishes.size();
     for (int i=0; i< nItems; i++)
         (*items).push_back((Item(i, rand() % 100 + 1, dishes[rand() % nDishes] )));
 }
 
-void printPrompt(int simTime, int nItems, int nCustomers, int nWaiters, vector <Item> items){
+/* function printPrompt: display program arguments summary
+    display simulation time, num customers, num waiters, what items were chosen
+*/
+void printPrompt(int simTime, int nItems, int nCustomers, int nWaiters, Item* items){
     cout << "=======Simulation arguments======\n"
     << "Simulation time: " << simTime << "\n"
     << "Menu items count: " << nItems << "\n"
@@ -241,23 +285,19 @@ void printPrompt(int simTime, int nItems, int nCustomers, int nWaiters, vector <
     << left << setw(8) << "Price" 
     << left << setw(4) << "Orders\n";
 
-    for (size_t i =0; i < items.size(); i++){
+    for (int i =0; i < nItems; i++){
         items[i].print();
     }
 }
 
 
 
-
-
 int main(int argc, char* argv[]){
     //init menu
-    vector <string> dishes = {"pizza onions", "pizza tomatoes", "pizza mozzarella",
-        "salad ceaser", "salad green","hamburger bigmac", "hamburger rancho",
-        "milkshake strawberry", "milkshake banana" ,"pie apple"  };
+
     
     int nItems, nCustomers, nWaiters, status, simTime;
-    vector <Item> items;
+    Item* items;
     vector <Order> orders;
     vector <Customer> customers;
     //init from command line
@@ -267,7 +307,11 @@ int main(int argc, char* argv[]){
     
 
     //init items on menu
-    initDishes(dishes, &items, nItems);
+    initSemaphores();
+    //initItems(dishes, &items, nItems);
+    items = createItems(nItems, &segmentId_Items);
+
+
     printPrompt(simTime, nItems, nCustomers, nWaiters, items);
     customers=initCustomers(nCustomers);
     

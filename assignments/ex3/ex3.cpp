@@ -357,24 +357,32 @@ void printPrompt(double simTime, int nItems, int nCustomers, int nWaiters, Item*
 */
 void ManagerProcess(double simTime, Item* items, int nItems, Order* orders, 
     int *ordersCounter, int nCustomers, int nWaiters){
+    
     auto start = chrono::high_resolution_clock::now();
     pid_t childpid;
     int i;
+    string entity;
     for (i = 0; i < nCustomers + nWaiters;  ++i){
         childpid = fork();
-
-        if ( childpid == 0 )
+        
+        if ( childpid != 0 )
         {
         break;
         }
     }
     auto elapsed =  chrono::high_resolution_clock::now() - start; 
     auto milliseconds = chrono::duration_cast<chrono::milliseconds>(elapsed);
+
+    if (0 <= i && i < nCustomers)
+        entity = "Customer"; 
+    else if (nCustomers <= i && i < nCustomers + nWaiters)
+        entity = "Waiter";
     cout
     << floor(milliseconds.count() / 1000)  << "." << milliseconds.count() % 1000
-    <<" Customer: " << i
+    <<" " << entity << ": " << i
     <<" created PID " << getpid()
     <<" PPID " <<getppid() << "\n";
+    
     while ( ( wait(NULL) != -1 && errno == ECHILD ) );
 
     while ( (chrono::high_resolution_clock::now() - start).count() < simTime){

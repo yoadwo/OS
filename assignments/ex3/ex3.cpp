@@ -80,7 +80,6 @@ int v(int semid)
     return 0;
 }
 
-
 /*  function show_usage: print usage instructions
     when enters program
 */
@@ -90,14 +89,13 @@ void show_usage(string name){
               << "\t-i\tChoose menu size (max 10)\n"
               << "\t-c\tChoose how many customers (max 10)\n"
               << "\t-w\tChoose how many waiters (max 3)\n"
-              << "\t-w\tChoose simulation time"
+              << "\t-t\tChoose simulation time (non-negative)"
               << "\n";
 }
 
 /* function setup: init how many dishes, participants and time
     also returns error message if more than allowed maximum
 */
-
 vector <Customer> initCustomers(int nCustomers){
     vector <Customer> c;
     int i;
@@ -110,7 +108,9 @@ vector <Customer> initCustomers(int nCustomers){
 
 }
 
-
+/* function setup: parse arguments into variables
+    quits and shows prompt for wrong usage
+*/
 int setup (int argc, char* argv[], int *nItems, int *nCustomers, int *nWaiters, int *simTime ){
     int status = 0;
     if (argc < 5) {
@@ -139,7 +139,7 @@ int setup (int argc, char* argv[], int *nItems, int *nCustomers, int *nWaiters, 
         } else if (arg == "-w") {
             *nWaiters = stoi(argv[i+1]);
             if (*nWaiters > 3){
-                cerr << "--A maximum of 10 waiters is allowed.\n";
+                cerr << "--A maximum of 3 waiters is allowed.\n";
                 status = 1;
             }
         } else if (arg == "-t") {
@@ -178,11 +178,11 @@ int initsem(key_t semkey)
             semid = semget( semkey, 1, 0 );
             if (semid == -1){
                 cerr << "Error creating semaphores\n";
-                status = -1;
+                return -1;
             }
         } else {
             cerr << "Error creating semaphores\n";
-            status = -1;
+            return -1;
         }
 
     }
@@ -195,12 +195,16 @@ int initsem(key_t semkey)
     if( semid == -1 || status == -1 )
     {
         cerr << "Error initsem\n";
-        exit(-1);
+        return -1;
     }
     return semid;
 }
 
-void initSemaphores(){
+/* function initSemaphores: init semaphores for items, customers, orders, screen
+    returns -1 if any semaphore fails and reports its name
+
+*/
+int initSemaphores(){
     key_t semkey_ResourceAccessItems = ftok(".",'a');
     key_t semkey_ReadCountAccessItems = ftok(".",'b');
     key_t semkey_ServiceQueueItems = ftok(".",'c');
@@ -213,18 +217,62 @@ void initSemaphores(){
     key_t semkey_OutputSemaphore = ftok(".",'j');
 
     semid_ResourceAccessItems = initsem(semkey_ResourceAccessItems);
+    if (semid_ResourceAccessItems == -1){
+        cout << "semaphore semid_ResourceAccessItems failed\n";
+        return -1;
+    }
     semid_ReadCountAccessItems = initsem(semkey_ReadCountAccessItems);
+    if (semid_ReadCountAccessItems == -1){
+        cout << "semaphore semid_ReadCountAccessItems failed\n";
+        return -1;
+    }
     semid_ServiceQueueItems = initsem(semkey_ServiceQueueItems);
+    if (semid_ResourceAccessItems == -1){
+        cout << "semaphore semid_ResourceAccessItems failed\n";
+        return -1;
+    }
     semid_ResourceAccessCustomer = initsem(semkey_ResourceAccessCustomer);
+    if (semid_ResourceAccessItems == -1){
+        cout << "semaphore semid_ResourceAccessItems failed\n";
+        return -1;
+    }
     semid_ReadCountAccessCustomer = initsem(semkey_ReadCountAccessCustomer);
+    if (semid_ReadCountAccessCustomer == -1){
+        cout << "semaphore semid_ReadCountAccessCustomer failed\n";
+        return -1;
+    }
     semid_ServiceQueueCustomer = initsem(semkey_ServiceQueueCustomer);
+    if (semid_ServiceQueueCustomer == -1){
+        cout << "semaphore semid_ServiceQueueCustomer failed\n";
+        return -1;
+    }
     semid_ResourceAccessOrder = initsem(semkey_ResourceAccessOrder);
+    if (semid_ResourceAccessOrder == -1){
+        cout << "semaphore semid_ResourceAccessOrder failed\n";
+        return -1;
+    }
     semid_ReadCountAccessOrder = initsem(semkey_ReadCountAccessOrder);
+    if (semid_ReadCountAccessOrder == -1){
+        cout << "semaphore semid_ReadCountAccessOrder failed\n";
+        return -1;
+    }
     semid_ServiceQueueOrder = initsem(semkey_ServiceQueueOrder);
+    if (semid_ServiceQueueOrder == -1){
+        cout << "semaphore semid_ServiceQueueOrder failed\n";
+        return -1;
+    }
     semid_outputSemaphore = initsem(semkey_OutputSemaphore);
+    if (semid_outputSemaphore == -1){
+        cout << "semaphore semid_outputSemaphore failed\n";
+        return -1;
+    }
+    return 0;
 }
 
-
+/* function createItems: creates shared memory for current items
+    using shmget & shmat. randomizes out of hard coded dishes collection.
+    returns address of shared memory or null if fails
+*/
 Item* createItems(int nItems, int* segmentId)
 {
     vector <string> dishes = {"pizza onions", "pizza tomatoes", "pizza mozzarella",
@@ -236,7 +284,7 @@ Item* createItems(int nItems, int* segmentId)
     if((*segmentId = shmget(IPC_PRIVATE, sizeof(Item) * nItems, 0644 | IPC_CREAT))==-1)
     {
         cerr << "Shared memory segment exists" << endl;
-        exit(1);
+        return NULL;
     }
     else
     {
@@ -252,19 +300,31 @@ Item* createItems(int nItems, int* segmentId)
         }
     }
 
-    // for (int i=0; i< nItems; i++)
-    //     (*items).push_back((Item(i, rand() % 100 + 1, dishes[rand() % nDishes] )));
-
     return items;
 }
 
-/*  function initDishes: init menu (what dishes and their price)
-    inits a vector if Item-class, randomizes price and dishes
+/* function createOrders: creates shared memory for future orders
+    using shmget & shmat. memory is unused, each time add one order to it
+    returns address of shared memory or null if fails
 */
-void initItems(vector <string> dishes, vector <Item> *items, int nItems){
-    int nDishes = dishes.size();
-    for (int i=0; i< nItems; i++)
-        (*items).push_back((Item(i, rand() % 100 + 1, dishes[rand() % nDishes] )));
+Order* createOrders(int* segmentId)
+{
+    Order *orders;
+    
+    if((*segmentId = shmget(IPC_PRIVATE, sizeof(Order) * MAX_ORDERS, 0644 | IPC_CREAT))==-1)
+    {
+        cerr << "Shared memory segment exists" << endl;
+        return NULL;
+    }
+    else
+    {
+        //menu = new (shmat (*segmentId,0, 0)) Dish;
+        if ((orders = (Order*)shmat (*segmentId,0,0)) == (void*)-1){
+            cerr << "Shared memory attach failed\n";
+            return NULL;
+        }
+    }
+    return orders;
 }
 
 /* function printPrompt: display program arguments summary
@@ -290,35 +350,34 @@ void printPrompt(int simTime, int nItems, int nCustomers, int nWaiters, Item* it
     }
 }
 
-
-
 int main(int argc, char* argv[]){
     //init menu
 
     
-    int nItems, nCustomers, nWaiters, status, simTime;
+    int nItems, nCustomers, nWaiters, status, simTime, ordersCounter = 0;
     Item* items;
-    vector <Order> orders;
+    Order* orders;
     vector <Customer> customers;
     //init from command line
     status = setup(argc, argv, &nItems, &nCustomers, &nWaiters, &simTime);
     if (status == 1)
         return 1;
-    
-
-    //init items on menu
     initSemaphores();
-    //initItems(dishes, &items, nItems);
+    //init items on menu from dishes
     items = createItems(nItems, &segmentId_Items);
-
-
+    if (items == NULL){
+        cout << "error creating items menu\n";
+        return 1;
+    }
+    orders = createOrders(&segmentId_OrdersBoard);
+    if (orders == NULL){
+        cout << "error creating orders menu\n";
+        return 1;
+    }
+    
     printPrompt(simTime, nItems, nCustomers, nWaiters, items);
     customers=initCustomers(nCustomers);
     
-
-    //init orders board (<custumer-id> is arbitrary, <items-id> and <amount> are random)
-   /* for (int i =0; i< nCustomers; i++)
-        orders.push_back(Order(i, items[rand() % items.size()].getId(), rand() % 10));*/
 
     
     cout << "\nPress any key to continue...\n";

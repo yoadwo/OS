@@ -44,12 +44,7 @@ int segmentId_Items;
 int segmentId_OrdersBoard;
 int segmentId_Customers;
 int segmentId_Waiters;
-
-
-
-
-
-
+int segmentId_ordersCount;
 
 
 /* function p: lower semaphore value
@@ -101,23 +96,9 @@ void show_usage(string name){
               << "\n";
 }
 
-/* function setup: init how many dishes, participants and time
-    also returns error message if more than allowed maximum
-*/
-// vector <Customer> initCustomers(int nCustomers){
-//     vector <Customer> c;
-//     int i;
-
-
-//     for(i=0;i<=nCustomers;i++){
-//       c.push_back(Customer(i));
-//     }  
-//     return c;
-
-// }
-
 /* function setup: parse arguments into variables
-    quits and shows prompt for wrong usage
+    init how many dishes, participants and time
+    also returns error message if more than allowed maximum
 */
 int setup (int argc, char* argv[], int *nItems, int *nCustomers, int *nWaiters, double *simTime ){
     int status = 0;
@@ -335,6 +316,31 @@ Order* createOrders(int* segmentId)
     return orders;
 }
 
+/* function createOrdersCounter: creates shared memory for orders array index
+    using shmget & shmat. must be shared memory for different processes to coordinate
+    returns address of shared memory or null if fails
+*/
+int* createOrdersCounter(int* segmentId)
+{
+    int *ordersCounter;
+    
+    if((*segmentId = shmget(IPC_PRIVATE, sizeof(int), 0644 | IPC_CREAT))==-1)
+    {
+        cerr << "Shared memory segment exists" << endl;
+        return NULL;
+    }
+    else
+    {
+        //menu = new (shmat (*segmentId,0, 0)) Dish;
+        if ((ordersCounter = (int*)shmat (*segmentId,0,0)) == (void*)-1){
+            cerr << "Shared memory attach failed\n";
+            return NULL;
+        }
+    }
+    return ordersCounter;
+}
+
+
 /* function printPrompt: display program arguments summary
     display simulation time, num customers, num waiters, what items were chosen
 */
@@ -398,11 +404,12 @@ void customerActions(int i,Item* items, int nItems, Order* orders,int* ordersCou
 
 
 void waiterActions(int i,Item* items, int nItems, Order* orders,int* ordersCounter)
-{
+{   
+    
     int waiterSleep_MIN=1,waiterSleep_MAX=2,orderAmount;
 
     sleep(rand()%(waiterSleep_MAX-waiterSleep_MIN+1)+waiterSleep_MIN);
-
+    
     if(*ordersCounter>0)
     {
         if(!orders[(*ordersCounter)-1].isDone())
@@ -460,6 +467,7 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
         //customerActions(i,items,nItems,orders,ordersCounter);
         while(simTime >= chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000){
             customerActions(i,items,nItems,orders,ordersCounter);
+            cout << "\n orders for customer process count = " << *ordersCounter << "\n";
         
         }
 
@@ -475,30 +483,21 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
         <<" PPID " <<getppid() << "\n";
          while(simTime >= chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000){
             waiterActions(i,items,nItems,orders,ordersCounter);
-        
+            cout << "\n orders for waiters process count = " << *ordersCounter << "\n";
         }
 
     }
     
 
-
-    while ( (chrono::high_resolution_clock::now() - start).count() < simTime){
-
-        
-    }
-
     while ((wait(0)) > 0);
 }
-
-
-
 
 
 int main(int argc, char* argv[]){
     //init menu
 
     
-    int nItems, nCustomers, nWaiters, status, ordersCounter = 0;
+    int nItems, nCustomers, nWaiters, status, *ordersCounter;
     double simTime;
     Item* items;
     Order* orders;
@@ -519,10 +518,11 @@ int main(int argc, char* argv[]){
         cout << "error creating orders menu\n";
         return 1;
     }
+    ordersCounter = createOrdersCounter(&segmentId_ordersCount);
     
     printPrompt(simTime, nItems, nCustomers, nWaiters, items);
     
-    ManagerProcess(simTime, items, nItems, orders, &ordersCounter, nCustomers, nWaiters);
+    ManagerProcess(simTime, items, nItems, orders, ordersCounter, nCustomers, nWaiters);
 
     
     cout << "\nPress any key to continue...\n";

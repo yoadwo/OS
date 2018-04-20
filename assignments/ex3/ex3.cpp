@@ -370,6 +370,7 @@ void customerActions(int i,Item* items, int nItems, Order* orders,int* ordersCou
     cout << "Customer ID " << i <<" reads a menu about: " << chosenItem.getName();
        sleep(1);
     if(*ordersCounter==0){
+        // from 0 to 10, not inclusive. if above 50%, order
            if (( rand()%11) > 5 ){
             orders[(*ordersCounter)++]= Order(i,chosenItem.getId(),rand()%11);
             cout << "(ordered, " << orders[0].getAmount() <<")\n";
@@ -380,7 +381,7 @@ void customerActions(int i,Item* items, int nItems, Order* orders,int* ordersCou
     }
     else if(orders[(*ordersCounter)-1].isDone())
       {
-          // from 0 to 10, not inclusive
+          // from 0 to 10, not inclusive. if above 50%, order
           if (( rand()%11) > 5){
             orders[(*ordersCounter)++]= Order(i,chosenItem.getId(),rand()%11);
             cout << "(ordered, " << orders[(*ordersCounter)-1].getAmount() <<")\n";

@@ -18,9 +18,9 @@
 #include <sys/sem.h>
 
 
-#include "Item.h"
+#include "Customer.cpp"
 #include "Order.cpp"
-#include "Customer.h"
+//#include "Item.cpp"
 
 
 #define SEMPERM 0600
@@ -44,6 +44,12 @@ int segmentId_Items;
 int segmentId_OrdersBoard;
 int segmentId_Customers;
 int segmentId_Waiters;
+
+
+
+
+
+
 
 
 /* function p: lower semaphore value

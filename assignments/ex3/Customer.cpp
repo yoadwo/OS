@@ -1,14 +1,19 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
-#include "Customer.h"
+#include <vector>
+#include "Item.cpp"
 
+using namespace std;
 
+typedef struct Customer{
+    int _customerId;
+    vector <Item> items;
 
-Customer :: Customer(int custId) 
+     Customer(int custId) 
     : _customerId(custId)
-{
-}
+    {
+    }
 
-
+}Customer;
 

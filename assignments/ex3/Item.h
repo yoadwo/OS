@@ -1,4 +1,4 @@
-#ifndef ITEM_H
+/*#ifndef ITEM_H
 #define ITEM_H
 
 using namespace std;
@@ -21,4 +21,4 @@ class Item
        //compare two time object
        bool equals(const Item &);
 };
-#endif
+#endif*/

@@ -5,14 +5,6 @@
 #include "Order.h"
 using namespace std;
  
-struct foo {
-  int bar;
-  foo() : bar(3) {}   //look, a constructor
-  int getBar() 
-  { 
-    return bar; 
-  }
-};
 
 typedef struct Order{
     int _customerId, _itemId, _amount;

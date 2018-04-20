@@ -22,7 +22,6 @@
 #include "Order.cpp"
 #include "Customer.h"
 
-#include "test1.cpp"
 
 #define SEMPERM 0600
 #define MAX_ORDERS 256
@@ -379,10 +378,6 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
     }
     auto elapsed =  chrono::high_resolution_clock::now() - start; 
     auto milliseconds = chrono::duration_cast<chrono::milliseconds>(elapsed);
-
-    test1 t1;
-    t1.a = 5;
-    cout << "t1.a = " << t1.a;
 
     if (0 <= i && i < nCustomers){
         entity = "Customer"; 

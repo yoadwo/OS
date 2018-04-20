@@ -18,9 +18,9 @@
 #include <sys/sem.h>
 
 
-#include "Item.h"
+//#include "Item.cpp"
 #include "Order.h"
-#include "Customer.h"
+#include "Customer.cpp"
 
 #define SEMPERM 0600
 #define MAX_ORDERS 256
@@ -43,6 +43,12 @@ int segmentId_Items;
 int segmentId_OrdersBoard;
 int segmentId_Customers;
 int segmentId_Waiters;
+
+
+
+
+
+
 
 
 /* function p: lower semaphore value
@@ -365,7 +371,7 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
     for (i = 0; i < nCustomers + nWaiters;  ++i){
         childpid = fork();
         
-        if ( childpid != 0 )
+        if ( childpid == 0 )
         {
         break;
         }

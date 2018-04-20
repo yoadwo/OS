@@ -362,10 +362,15 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
     pid_t childpid;
     int i;
     string entity;
-    for (i = 0; i < nCustomers + nWaiters;  ++i){
+
+    //todo:
+    // fix entity count
+    // fix wait to children
+    // continue 1 read 1 write
+    for (i = 0; i < nCustomers + nWaiters ;  ++i){
         childpid = fork();
         
-        if ( childpid != 0 )
+        if ( childpid == 0 )
         {
         break;
         }
@@ -373,22 +378,38 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
     auto elapsed =  chrono::high_resolution_clock::now() - start; 
     auto milliseconds = chrono::duration_cast<chrono::milliseconds>(elapsed);
 
-    if (0 <= i && i < nCustomers)
+    if (0 <= i && i < nCustomers){
         entity = "Customer"; 
-    else if (nCustomers <= i && i < nCustomers + nWaiters)
+        cout
+        << floor(milliseconds.count() / 1000)  << "." << milliseconds.count() % 1000
+        <<" " << entity << ": " << i
+        <<" created PID " << getpid()
+        <<" PPID " <<getppid() << "\n";
+
+        orders[(*ordersCounter)++] = Order(0, 4, 8);
+        orders[(*ordersCounter)++] = Order(1, 8, 12);
+
+        orders[0].print();
+        orders[1].print();
+
+    }        
+    else if (nCustomers <= i && i < nCustomers + nWaiters) {
         entity = "Waiter";
-    cout
-    << floor(milliseconds.count() / 1000)  << "." << milliseconds.count() % 1000
-    <<" " << entity << ": " << i
-    <<" created PID " << getpid()
-    <<" PPID " <<getppid() << "\n";
+        cout
+        << floor(milliseconds.count() / 1000)  << "." << milliseconds.count() % 1000
+        <<" " << entity << ": " << i
+        <<" created PID " << getpid()
+        <<" PPID " <<getppid() << "\n";
+    }
     
-    while ( ( wait(NULL) != -1 && errno == ECHILD ) );
+
 
     while ( (chrono::high_resolution_clock::now() - start).count() < simTime){
 
         
     }
+
+    while ((wait(0)) > 0);
 }
 
 int main(int argc, char* argv[]){

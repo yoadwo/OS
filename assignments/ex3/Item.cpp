@@ -15,7 +15,6 @@ typedef struct Item{
 
     Item() : _id(0), _price (0), _totalOrdered(0)
     {
-    
         _name = "";
     }
 
@@ -41,11 +40,11 @@ typedef struct Item{
     }
     void  print()
     {
-     cout  
-     << left << "[" << setw(2) << _id << "] "
-     << left << setw(20) <<_name
-      << left << setw(8) << _price 
-        << left << setw(4) << _totalOrdered  << "\n";     
+    cout  
+    << left << "[" << setw(2) << _id << "] "
+    << left << setw(20) <<_name
+    << left << setw(8) << _price 
+    << left << setw(4) << _totalOrdered  << "\n";     
  
     }
  

@@ -27,6 +27,12 @@ typedef struct Order{
     bool isDone(){
         return _done;
     }
+    void clearDone(){
+        _done = false;
+    }
+    void setDone(){
+        _done = true;
+    }
     void  print(){
         cout 
         << "customerId: " << _customerId 

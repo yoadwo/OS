@@ -365,71 +365,76 @@ void printPrompt(double simTime, int nItems, int nCustomers, int nWaiters, Item*
     cout << "\n=================================\n";
 }
 
-
-void customerActions(int i,Item* items, int nItems, Order* orders,int* ordersCounter)
+/* function customerActions: simulate customer actions
+    customer reads from menu and orders
+*/
+void customerActions(int i,Item* items, int nItems, Order* orders,int* ordersCounter,
+std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> start)
 {
     int customerSleep_MIN=3,customerSleep_MAX=6;
     
-    //Order 0;
     sleep(rand()%(customerSleep_MAX-customerSleep_MIN+1)+customerSleep_MIN);
     Item chosenItem = items[rand()%(nItems)];
-    cout << "Customer ID " << i <<" reads a menu about: " << chosenItem.getName();
-       sleep(1);
+
+    cout << fixed << showpoint << setprecision(3);
+    cout
+    << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
+    << " Customer ID " << i 
+    << " reads a menu about: " << chosenItem.getName();
+    
+    sleep(1);
     if(*ordersCounter==0){
         // from 0 to 10, not inclusive. if above 50%, order
-           if (( rand()%11) > 5 ){
-            orders[(*ordersCounter)++]= Order(i,chosenItem.getId(),rand()%11);
+        if (( rand()%11) > 5 ){
+            orders[0]= Order(i,chosenItem.getId(),rand()%11 + 1);
+            orders[0].clearDone();
             cout << "(ordered, " << orders[0].getAmount() <<")\n";
-          }
-          else{
-              cout << "(doesn't want to order)\n";
-          }
+            (*ordersCounter)++;
+        }
+        else{
+            cout << "(doesn't want to order)\n";
+        }
     }
-    else if(orders[(*ordersCounter)-1].isDone())
-      {
-          // from 0 to 10, not inclusive. if above 50%, order
-          if (( rand()%11) > 5){
-            orders[(*ordersCounter)++]= Order(i,chosenItem.getId(),rand()%11);
-            cout << "(ordered, " << orders[(*ordersCounter)-1].getAmount() <<")\n";
+    else if(orders[(*ordersCounter)-1].isDone()){
+        // from 0 to 10, not inclusive. if above 50%, order
+        if (( rand()%11) > 5){
+            orders[*ordersCounter]= Order(i,chosenItem.getId(),rand()% 11 + 1);
+            orders[*ordersCounter].clearDone();
+            cout << "(ordered, " << orders[*ordersCounter].getAmount() <<")\n";
+            (*ordersCounter)++;
           }
-          else{
-              cout <<"(doesn't want to order)\n";
-          }
-    
-      }
-
-
+        else{
+            cout <<"(doesn't want to order)\n";
+        }
+    }
 
 }
 
-
-void waiterActions(int i,Item* items, int nItems, Order* orders,int* ordersCounter)
+void waiterActions(int i,Item* items, int nItems, Order* orders,int* ordersCounter, 
+std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds>  start)
 {   
     
     int waiterSleep_MIN=1,waiterSleep_MAX=2,orderAmount;
 
     sleep(rand()%(waiterSleep_MAX-waiterSleep_MIN+1)+waiterSleep_MIN);
-    
     if(*ordersCounter>0)
     {
-        if(!orders[(*ordersCounter)-1].isDone())
-            {
-                Order o=orders[(*ordersCounter)-1];
-                orderAmount=orders[(*ordersCounter)-1].getAmount();
-                cout << "waiter ID " << i <<"performs the order of Customer ID "<< o.getCustomerId()<<"("<<orderAmount<<" "<<items[orders[(*ordersCounter)-1].getItemId()].getName()<<")\n";
-                items[orders[(*ordersCounter)-1].getItemId()]._totalOrdered+=orderAmount;
-                orders[(*ordersCounter)-1]._done=true;
-                
-            }
-
-
+        if(!(orders[(*ordersCounter)-1].isDone()))
+        {
+            Order o=orders[(*ordersCounter)-1];    
+            orderAmount=orders[(*ordersCounter)-1].getAmount();
+            cout << fixed << showpoint << setprecision(3);
+            cout
+            << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
+            << " waiter ID " << i <<" performs the order of Customer ID "<< o.getCustomerId()<<"("<<orderAmount<<" "<<items[orders[(*ordersCounter)-1].getItemId()].getName()<<")\n";
+            items[orders[(*ordersCounter)-1].getItemId()]._totalOrdered+=orderAmount;
+            orders[(*ordersCounter)-1]._done=true;
+        }
 
     }
 
 
 }
-
-
 
 /* function ManagerProcess: begin simulation of customers and waiters 
     while sim time not ended, customers() and waiters() read\write from memory
@@ -440,12 +445,8 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
     auto start = chrono::high_resolution_clock::now();
     pid_t childpid;
     int i;
-    string entity;
 
-    //todo:
-    // fix entity count
-    // fix wait to children
-    // continue 1 read 1 write
+    
     for (i = 0; i < nCustomers + nWaiters ;  ++i){
         childpid = fork();
         
@@ -454,41 +455,53 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
         break;
         }
     }
-    auto elapsed =  chrono::high_resolution_clock::now() - start; 
-    auto milliseconds = chrono::duration_cast<chrono::milliseconds>(elapsed);
-    //customer
-    if (0 <= i && i < nCustomers){
-        entity = "Customer"; 
-        cout
-        << floor(milliseconds.count() / 1000)  << "." << milliseconds.count() % 1000
-        <<" " << entity << ": " << i
-        <<" created PID " << getpid()
-        <<" PPID " <<getppid() << "\n";
-        //customerActions(i,items,nItems,orders,ordersCounter);
-        while(simTime >= chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000){
-            customerActions(i,items,nItems,orders,ordersCounter);
-            cout << "\n orders for customer process count = " << *ordersCounter << "\n";
+    if (childpid ==0 ){
+        //parent forks children
+        // first children with lower i values will be customers
+        // later children with higher i values will be waiters
+
+        //customers
+        if (0 <= i && i < nCustomers){
+            cout << fixed << showpoint << setprecision(3);
+            cout
+            << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
+            << " Customer " << i 
+            << ": Created PID "  << getpid() 
+            << " PPID " << getppid() << "\n";
+            
+            while(simTime >= chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000){
+                customerActions(i,items,nItems,orders,ordersCounter, start);
+            
+            }
+            cout
+            << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
+            << " Customer " << i 
+            << ": PID "  << getpid() 
+            << " end work PPID " << getppid() << "\n";
+
         
-        }
+        } 
+        //waiter       
+        else if (nCustomers <= i && i < nCustomers + nWaiters) { 
+            cout << fixed << showpoint << setprecision(3);
+            cout
+            << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
+            << " Waiter " << i 
+            << ": Created PID "  << getpid() 
+            << " PPID " << getppid() << "\n";
+            
+            while(simTime >= chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000){
+                waiterActions(i,items,nItems,orders,ordersCounter, start);
+            }
+            cout
+            << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
+            << " Waiter " << i 
+            << ": PID "  << getpid() 
+            << " end work PPID " << getppid() << "\n";
 
-     
-    } 
-    //waiter       
-    else if (nCustomers <= i && i < nCustomers + nWaiters) {
-        entity = "Waiter";
-        cout
-        << floor(milliseconds.count() / 1000)  << "." << milliseconds.count() % 1000
-        <<" " << entity << ": " << i
-        <<" created PID " << getpid()
-        <<" PPID " <<getppid() << "\n";
-         while(simTime >= chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000){
-            waiterActions(i,items,nItems,orders,ordersCounter);
-            cout << "\n orders for waiters process count = " << *ordersCounter << "\n";
         }
-
+    exit(0);
     }
-    
-
     while ((wait(0)) > 0);
 }
 

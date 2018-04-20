@@ -26,6 +26,7 @@
         "array": "cpp",
         "utility": "cpp",
         "cerrno": "cpp",
-        "chrono": "cpp"
+        "chrono": "cpp",
+        "iomanip": "cpp"
     }
 }

@@ -13,6 +13,12 @@ typedef struct Item{
     int _id, _price, _totalOrdered;
     string _name;
 
+    Item() : _id(0), _price (0), _totalOrdered(0)
+    {
+    
+        _name = "";
+    }
+
     Item(int id, int price, string name) : _id(id), _price (price), _totalOrdered(0)
     {
     

@@ -104,17 +104,17 @@ void show_usage(string name){
 /* function setup: init how many dishes, participants and time
     also returns error message if more than allowed maximum
 */
-vector <Customer> initCustomers(int nCustomers){
-    vector <Customer> c;
-    int i;
+// vector <Customer> initCustomers(int nCustomers){
+//     vector <Customer> c;
+//     int i;
 
 
-    for(i=0;i<=nCustomers;i++){
-      c.push_back(Customer(i));
-    }  
-    return c;
+//     for(i=0;i<=nCustomers;i++){
+//       c.push_back(Customer(i));
+//     }  
+//     return c;
 
-}
+// }
 
 /* function setup: parse arguments into variables
     quits and shows prompt for wrong usage
@@ -359,6 +359,45 @@ void printPrompt(double simTime, int nItems, int nCustomers, int nWaiters, Item*
     cout << "\n=================================\n";
 }
 
+
+void customerActions(int i,Item* items, int nItems, Order* orders,int* ordersCounter)
+{
+    int customerSleep_MIN=3,customerSleep_MAX=6;
+    
+    //Order 0;
+    sleep(rand()%(customerSleep_MAX-customerSleep_MIN+1)+customerSleep_MIN);
+    Item chosenItem = items[rand()%(nItems)];
+    cout<<"reads a menu about: " << chosenItem.getName();
+       sleep(1);
+    if(*ordersCounter==0){
+           if (( rand()%11) > 0 ){
+            orders[(*ordersCounter)++]= Order(i,chosenItem.getId(),rand()%11);
+            orders[*ordersCounter-1].print(); 
+          }
+    }
+    else if(orders[(*ordersCounter)-1].isDone())
+      {
+          // from 0 to 10, not inclusive
+          if (( rand()%11) > 0){
+            orders[(*ordersCounter)++]= Order(i,chosenItem.getId(),rand()%11);
+            orders[*ordersCounter-1].print(); 
+          }
+    
+
+        
+
+
+
+
+
+      }
+
+
+
+}
+
+
+
 /* function ManagerProcess: begin simulation of customers and waiters 
     while sim time not ended, customers() and waiters() read\write from memory
 */
@@ -384,7 +423,7 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
     }
     auto elapsed =  chrono::high_resolution_clock::now() - start; 
     auto milliseconds = chrono::duration_cast<chrono::milliseconds>(elapsed);
-
+    //customer
     if (0 <= i && i < nCustomers){
         entity = "Customer"; 
         cout
@@ -392,14 +431,15 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
         <<" " << entity << ": " << i
         <<" created PID " << getpid()
         <<" PPID " <<getppid() << "\n";
+        //customerActions(i,items,nItems,orders,ordersCounter);
+        while(simTime >= chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000){
+            customerActions(i,items,nItems,orders,ordersCounter);
+        
+        }
 
-        orders[(*ordersCounter)++] = Order(0, 4, 8);
-        orders[(*ordersCounter)++] = Order(1, 8, 12);
-
-        orders[0].print();
-        orders[1].print();
-
-    }        
+     
+    } 
+    //waiter       
     else if (nCustomers <= i && i < nCustomers + nWaiters) {
         entity = "Waiter";
         cout
@@ -407,6 +447,7 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
         <<" " << entity << ": " << i
         <<" created PID " << getpid()
         <<" PPID " <<getppid() << "\n";
+
     }
     
 
@@ -418,6 +459,10 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
 
     while ((wait(0)) > 0);
 }
+
+
+
+
 
 int main(int argc, char* argv[]){
     //init menu

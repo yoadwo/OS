@@ -397,6 +397,32 @@ void customerActions(int i,Item* items, int nItems, Order* orders,int* ordersCou
 }
 
 
+void waiterActions(int i,Item* items, int nItems, Order* orders,int* ordersCounter)
+{
+    int waiterSleep_MIN=1,waiterSleep_MAX=2,orderAmount;
+
+    sleep(rand()%(waiterSleep_MAX-waiterSleep_MIN+1)+waiterSleep_MIN);
+
+    if(*ordersCounter>0)
+    {
+        if(!orders[(*ordersCounter)-1].isDone())
+            {
+                Order o=orders[(*ordersCounter)-1];
+                orderAmount=orders[(*ordersCounter)-1].getAmount();
+                cout << "waiter ID " << i <<"performs the order of Customer ID "<< o.getCustomerId()<<"("<<orderAmount<<" "<<items[orders[(*ordersCounter)-1].getItemId()].getName()<<")\n";
+                items[orders[(*ordersCounter)-1].getItemId()]._totalOrdered+=orderAmount;
+                orders[(*ordersCounter)-1]._done=true;
+                
+            }
+
+
+
+    }
+
+
+}
+
+
 
 /* function ManagerProcess: begin simulation of customers and waiters 
     while sim time not ended, customers() and waiters() read\write from memory
@@ -447,6 +473,10 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
         <<" " << entity << ": " << i
         <<" created PID " << getpid()
         <<" PPID " <<getppid() << "\n";
+         while(simTime >= chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000){
+            waiterActions(i,items,nItems,orders,ordersCounter);
+        
+        }
 
     }
     

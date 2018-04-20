@@ -367,29 +367,28 @@ void customerActions(int i,Item* items, int nItems, Order* orders,int* ordersCou
     //Order 0;
     sleep(rand()%(customerSleep_MAX-customerSleep_MIN+1)+customerSleep_MIN);
     Item chosenItem = items[rand()%(nItems)];
-    cout<<"reads a menu about: " << chosenItem.getName();
+    cout << "Customer ID " << i <<" reads a menu about: " << chosenItem.getName();
        sleep(1);
     if(*ordersCounter==0){
-           if (( rand()%11) > 0 ){
+           if (( rand()%11) > 5 ){
             orders[(*ordersCounter)++]= Order(i,chosenItem.getId(),rand()%11);
-            orders[*ordersCounter-1].print(); 
+            cout << "(ordered, " << orders[0].getAmount() <<")\n";
+          }
+          else{
+              cout << "(doesn't want to order)\n";
           }
     }
     else if(orders[(*ordersCounter)-1].isDone())
       {
           // from 0 to 10, not inclusive
-          if (( rand()%11) > 0){
+          if (( rand()%11) > 5){
             orders[(*ordersCounter)++]= Order(i,chosenItem.getId(),rand()%11);
-            orders[*ordersCounter-1].print(); 
+            cout << "(ordered, " << orders[(*ordersCounter)-1].getAmount() <<")\n";
+          }
+          else{
+              cout <<"(doesn't want to order)\n";
           }
     
-
-        
-
-
-
-
-
       }
 
 

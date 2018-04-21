@@ -418,8 +418,8 @@ void printPrompt(double simTime, int nItems, int nCustomers, int nWaiters, Item*
 /* function customerActions: simulate customer actions
     customer reads from menu and orders
 */
-void customerActions(int i,Item* items, int nItems, Order* orders,int* ordersCounter,
-std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> start)
+void customerActions(int i,Item* items, int nItems, Order* orders,int* ordersCounter, int *customersReadCounter,
+chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> start)
 {
     int customerSleep_MIN=3,customerSleep_MAX=6;
     
@@ -435,14 +435,30 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
     // v(semid_outputSemaphore);
     
    
+    p(semid_ServiceQueueOrder);
+    p(semid_ReadCountAccessOrder);
+    if (*customersReadCounter ==0)
+        p(semid_ResourceAccessOrder);
+    (*customersReadCounter)++;
+    v(semid_ServiceQueueOrder);
+    v(semid_ReadCountAccessOrder);
 
-    // if(*ordersCounter==0){
-    if(orders[0].isDone()){
+    cout << "process " << getpid() << " is about to order\n";
+        
+    if(*ordersCounter==0){
         // from 0 to 10, not inclusive. if above 50%, order
        
         if (( rand()%11) > 5 ){
+            p(semid_ServiceQueueOrder);
+            p(semid_ResourceAccessOrder);
+            v(semid_ServiceQueueOrder);
+            
             orders[0]= Order(i,chosenItem.getId(),rand()%11 + 1);
             orders[0].clearDone();
+            (*ordersCounter)++;
+
+            v(semid_ResourceAccessOrder);
+
             p(semid_outputSemaphore);
             sleep(1);
             cout << fixed << showpoint << setprecision(3);
@@ -451,7 +467,7 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
             << " Customer ID " << i 
             << " reads a menu about: " << chosenItem.getName() << "(ordered, " << orders[0].getAmount() <<")\n";
             v(semid_outputSemaphore);
-            (*ordersCounter)++;
+            
 
         }
         else{
@@ -469,9 +485,16 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
     else if(orders[(*ordersCounter)-1].isDone()){
         // from 0 to 10, not inclusive. if above 50%, order
         if (( rand()%11) > 5){
+            p(semid_ServiceQueueOrder);
+            p(semid_ResourceAccessOrder);
+            v(semid_ServiceQueueOrder);
+            //enter write CS
             orders[*ordersCounter]= Order(i,chosenItem.getId(),rand()% 11 + 1);
             orders[*ordersCounter].clearDone();
-            
+            (*ordersCounter)++;
+            //exit write CS
+            v(semid_ResourceAccessOrder);
+
             p(semid_outputSemaphore);
             sleep(1);
             cout << fixed << showpoint << setprecision(3);
@@ -479,10 +502,10 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
             << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
             << " Customer ID " << i 
             << " reads a menu about: " << chosenItem.getName();
-            cout << " (ordered, " << orders[*ordersCounter].getAmount() <<")\n";
+            cout << " (ordered, " << orders[(*ordersCounter) -1].getAmount() <<")\n";
             v(semid_outputSemaphore);
             
-            (*ordersCounter)++;
+            
           }
         else{
             p(semid_outputSemaphore);
@@ -495,10 +518,18 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
             v(semid_outputSemaphore);
         }
     }
+    
+    p(semid_ReadCountAccessOrder);
+    (*customersReadCounter)--;
+    if (*customersReadCounter == 0)
+        v(semid_ResourceAccessOrder);
+    v(semid_ReadCountAccessOrder);
+    
+    
 
 }
 
-void waiterActions(int i,Item* items, int nItems, Order* orders,int* ordersCounter, 
+void waiterActions(int i,Item* items, int nItems, Order* orders,int* ordersCounter, int *waitersReadCounter,
 std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds>  start)
 {   
     
@@ -530,7 +561,7 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
     while sim time not ended, customers() and waiters() read\write from memory
 */
 void ManagerProcess(double simTime, Item* items, int nItems, Order* orders, 
-    int *ordersCounter, int nCustomers, int nWaiters){
+    int *ordersCounter, int nCustomers, int nWaiters, int *waitersReadCounter, int *customersReadCounter){
     
     auto start = chrono::high_resolution_clock::now();
     pid_t childpid;
@@ -562,7 +593,7 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
             << " PPID " << getppid() << "\n";
             v(semid_outputSemaphore);
             while(simTime >= chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000){
-                customerActions(i,items,nItems,orders,ordersCounter, start);
+                customerActions(i,items,nItems,orders,ordersCounter, customersReadCounter , start);
             
             }
             p(semid_outputSemaphore);
@@ -585,7 +616,7 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
             << " PPID " << getppid() << "\n";
             v(semid_outputSemaphore);
             while(simTime >= chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000){
-                waiterActions(i,items,nItems,orders,ordersCounter, start);
+                waiterActions(i,items,nItems,orders,ordersCounter, waitersReadCounter , start);
             }
             p(semid_outputSemaphore);
             cout
@@ -637,16 +668,19 @@ int main(int argc, char* argv[]){
         cerr << "error creating waiters read counter\n";
         return 1;
     }
+    (*waitersReadCounter) = 0;
     customersReadCounter = createCustomersReadCounter(&segmentId_customerCounter);
     if (customersReadCounter == NULL){
         cerr << "error creating customers read counter\n";
         return 1;
     }
+    (*customersReadCounter) = 0;
 
     
     printPrompt(simTime, nItems, nCustomers, nWaiters, items);
     
-    ManagerProcess(simTime, items, nItems, orders, ordersCounter, nCustomers, nWaiters);
+    ManagerProcess(simTime, items, nItems, orders, ordersCounter, nCustomers, nWaiters, 
+        waitersReadCounter, customersReadCounter );
 
     
     cout << "\nPress any key to continue...\n";

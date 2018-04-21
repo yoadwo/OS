@@ -218,8 +218,8 @@ int initSemaphores(){
         return -1;
     }
     semid_ServiceQueueItems = initsem(semkey_ServiceQueueItems);
-    if (semid_ResourceAccessItems == -1){
-        cerr << "semaphore semid_ResourceAccessItems failed\n";
+    if (semid_ServiceQueueItems == -1){
+        cerr << "semaphore semid_ServiceQueueItems failed\n";
         return -1;
     }
     semid_ResourceAccessCustomer = initsem(semkey_ResourceAccessCustomer);

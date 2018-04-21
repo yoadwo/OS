@@ -207,52 +207,52 @@ int initSemaphores(){
 
     semid_ResourceAccessItems = initsem(semkey_ResourceAccessItems);
     if (semid_ResourceAccessItems == -1){
-        cout << "semaphore semid_ResourceAccessItems failed\n";
+        cerr << "semaphore semid_ResourceAccessItems failed\n";
         return -1;
     }
     semid_ReadCountAccessItems = initsem(semkey_ReadCountAccessItems);
     if (semid_ReadCountAccessItems == -1){
-        cout << "semaphore semid_ReadCountAccessItems failed\n";
+        cerr << "semaphore semid_ReadCountAccessItems failed\n";
         return -1;
     }
     semid_ServiceQueueItems = initsem(semkey_ServiceQueueItems);
     if (semid_ResourceAccessItems == -1){
-        cout << "semaphore semid_ResourceAccessItems failed\n";
+        cerr << "semaphore semid_ResourceAccessItems failed\n";
         return -1;
     }
     semid_ResourceAccessCustomer = initsem(semkey_ResourceAccessCustomer);
     if (semid_ResourceAccessItems == -1){
-        cout << "semaphore semid_ResourceAccessItems failed\n";
+        cerr << "semaphore semid_ResourceAccessItems failed\n";
         return -1;
     }
     semid_ReadCountAccessCustomer = initsem(semkey_ReadCountAccessCustomer);
     if (semid_ReadCountAccessCustomer == -1){
-        cout << "semaphore semid_ReadCountAccessCustomer failed\n";
+        cerr << "semaphore semid_ReadCountAccessCustomer failed\n";
         return -1;
     }
     semid_ServiceQueueCustomer = initsem(semkey_ServiceQueueCustomer);
     if (semid_ServiceQueueCustomer == -1){
-        cout << "semaphore semid_ServiceQueueCustomer failed\n";
+        cerr << "semaphore semid_ServiceQueueCustomer failed\n";
         return -1;
     }
     semid_ResourceAccessOrder = initsem(semkey_ResourceAccessOrder);
     if (semid_ResourceAccessOrder == -1){
-        cout << "semaphore semid_ResourceAccessOrder failed\n";
+        cerr << "semaphore semid_ResourceAccessOrder failed\n";
         return -1;
     }
     semid_ReadCountAccessOrder = initsem(semkey_ReadCountAccessOrder);
     if (semid_ReadCountAccessOrder == -1){
-        cout << "semaphore semid_ReadCountAccessOrder failed\n";
+        cerr << "semaphore semid_ReadCountAccessOrder failed\n";
         return -1;
     }
     semid_ServiceQueueOrder = initsem(semkey_ServiceQueueOrder);
     if (semid_ServiceQueueOrder == -1){
-        cout << "semaphore semid_ServiceQueueOrder failed\n";
+        cerr << "semaphore semid_ServiceQueueOrder failed\n";
         return -1;
     }
     semid_outputSemaphore = initsem(semkey_OutputSemaphore);
     if (semid_outputSemaphore == -1){
-        cout << "semaphore semid_outputSemaphore failed\n";
+        cerr << "semaphore semid_outputSemaphore failed\n";
         return -1;
     }
     return 0;
@@ -375,12 +375,14 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
     
     sleep(rand()%(customerSleep_MAX-customerSleep_MIN+1)+customerSleep_MIN);
     Item chosenItem = items[rand()%(nItems)];
-
+    
+    p(semid_outputSemaphore);
     cout << fixed << showpoint << setprecision(3);
     cout
     << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
     << " Customer ID " << i 
     << " reads a menu about: " << chosenItem.getName();
+    v(semid_outputSemaphore);
     
     sleep(1);
     if(*ordersCounter==0){
@@ -388,11 +390,15 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
         if (( rand()%11) > 5 ){
             orders[0]= Order(i,chosenItem.getId(),rand()%11 + 1);
             orders[0].clearDone();
+            p(semid_outputSemaphore);
             cout << "(ordered, " << orders[0].getAmount() <<")\n";
+            v(semid_outputSemaphore);
             (*ordersCounter)++;
         }
         else{
+            p(semid_outputSemaphore);
             cout << "(doesn't want to order)\n";
+            v(semid_outputSemaphore);
         }
     }
     else if(orders[(*ordersCounter)-1].isDone()){
@@ -400,11 +406,15 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
         if (( rand()%11) > 5){
             orders[*ordersCounter]= Order(i,chosenItem.getId(),rand()% 11 + 1);
             orders[*ordersCounter].clearDone();
+            p(semid_outputSemaphore);
             cout << "(ordered, " << orders[*ordersCounter].getAmount() <<")\n";
+            v(semid_outputSemaphore);
             (*ordersCounter)++;
           }
         else{
+            p(semid_outputSemaphore);
             cout <<"(doesn't want to order)\n";
+            v(semid_outputSemaphore);
         }
     }
 

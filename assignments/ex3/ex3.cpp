@@ -45,6 +45,8 @@ int segmentId_OrdersBoard;
 int segmentId_Customers;
 int segmentId_Waiters;
 int segmentId_ordersCount;
+int segmentId_customerCounter;
+int segmentId_waiterCounter;
 
 
 /* function p: lower semaphore value
@@ -316,6 +318,54 @@ Order* createOrders(int* segmentId)
     return orders;
 }
 
+/* function createWaitersReadCounter: creates shared memory for waiters reader semaphore
+    using shmget & shmat. 
+    returns address of shared memory or null if fails
+*/
+int* createWaitersReadCounter(int* segmentId)
+{
+    int* waitersReadCounter;
+    
+    if((*segmentId = shmget(IPC_PRIVATE, sizeof(int), 0644 | IPC_CREAT))==-1)
+    {
+        cerr << "Shared memory segment exists" << endl;
+        return NULL;
+    }
+    else
+    {
+        //menu = new (shmat (*segmentId,0, 0)) Dish;
+        if ((waitersReadCounter = (int*)shmat (*segmentId,0,0)) == (void*)-1){
+            cerr << "Shared memory attach failed\n";
+            return NULL;
+        }
+    }
+    return waitersReadCounter;
+}
+
+/* function createCustomersReadCounter: creates shared memory customers reader semaphore
+    using shmget & shmat. 
+    returns address of shared memory or null if fails
+*/
+int* createCustomersReadCounter(int* segmentId)
+{
+    int *customersReadCounter;
+    
+    if((*segmentId = shmget(IPC_PRIVATE, sizeof(int) , 0644 | IPC_CREAT))==-1)
+    {
+        cerr << "Shared memory segment exists" << endl;
+        return NULL;
+    }
+    else
+    {
+        //menu = new (shmat (*segmentId,0, 0)) Dish;
+        if ((customersReadCounter = (int*)shmat (*segmentId,0,0)) == (void*)-1){
+            cerr << "Shared memory attach failed\n";
+            return NULL;
+        }
+    }
+    return customersReadCounter;
+}
+
 /* function createOrdersCounter: creates shared memory for orders array index
     using shmget & shmat. must be shared memory for different processes to coordinate
     returns address of shared memory or null if fails
@@ -386,15 +436,15 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
     
    
 
-    if(*ordersCounter==0){
-        
+    // if(*ordersCounter==0){
+    if(orders[0].isDone()){
         // from 0 to 10, not inclusive. if above 50%, order
        
         if (( rand()%11) > 5 ){
             orders[0]= Order(i,chosenItem.getId(),rand()%11 + 1);
             orders[0].clearDone();
             p(semid_outputSemaphore);
-             sleep(1);
+            sleep(1);
             cout << fixed << showpoint << setprecision(3);
             cout
             << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
@@ -402,6 +452,7 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
             << " reads a menu about: " << chosenItem.getName() << "(ordered, " << orders[0].getAmount() <<")\n";
             v(semid_outputSemaphore);
             (*ordersCounter)++;
+
         }
         else{
             p(semid_outputSemaphore);
@@ -495,6 +546,7 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
         }
     }
     if (childpid ==0 ){
+        srand (time(NULL) * getpid());
         //parent forks children
         // first children with lower i values will be customers
         // later children with higher i values will be waiters
@@ -553,7 +605,8 @@ int main(int argc, char* argv[]){
     //init menu
 
     
-    int nItems, nCustomers, nWaiters, status, *ordersCounter;
+    int nItems, nCustomers, nWaiters, status, *ordersCounter,
+         *waitersReadCounter, *customersReadCounter;
     double simTime;
     Item* items;
     Order* orders;
@@ -566,15 +619,30 @@ int main(int argc, char* argv[]){
     //init items on menu from dishes
     items = createItems(nItems, &segmentId_Items);
     if (items == NULL){
-        cout << "error creating items menu\n";
+        cerr << "error creating items menu\n";
         return 1;
     }
     orders = createOrders(&segmentId_OrdersBoard);
     if (orders == NULL){
-        cout << "error creating orders menu\n";
+        cerr << "error creating orders menu\n";
         return 1;
     }
     ordersCounter = createOrdersCounter(&segmentId_ordersCount);
+    if (ordersCounter == NULL){
+        cerr << "error creating orders counter\n";
+        return 1;
+    }
+    waitersReadCounter = createWaitersReadCounter(&segmentId_waiterCounter);
+    if (waitersReadCounter == NULL){
+        cerr << "error creating waiters read counter\n";
+        return 1;
+    }
+    customersReadCounter = createCustomersReadCounter(&segmentId_customerCounter);
+    if (customersReadCounter == NULL){
+        cerr << "error creating customers read counter\n";
+        return 1;
+    }
+
     
     printPrompt(simTime, nItems, nCustomers, nWaiters, items);
     

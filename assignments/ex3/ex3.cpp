@@ -27,6 +27,12 @@
 
 #define SEMPERM 0600
 #define MAX_ORDERS 256
+#define MIN_PRICE 0
+#define MAX_PRICE 100
+#define CUSTOMER_SLEEP_MIN 3
+#define CUSTOMER_SLEEP_MAX 6
+#define WAITER_SLEEP_MIN 1
+#define WAITER_SLEEP_MAX 2
 
 using namespace std;
 
@@ -307,7 +313,7 @@ int setup (int argc, char* argv[], int *nItems, int *nCustomers, int *nWaiters, 
         show_usage(argv[0]);
         return 1;
     }
-    
+    // seed random
     srand (time(NULL));
     
     string arg;
@@ -347,6 +353,23 @@ int setup (int argc, char* argv[], int *nItems, int *nCustomers, int *nWaiters, 
     return status;
 }
 
+/* function int_rand: returns a pseudo-random integer
+    integer in range [min, max] (inclusive)
+*/
+int int_rand(int min, int max){
+    int range = max - min + 1;
+    return ((rand() % range) + min);
+}
+
+/* function float_rand: returns a pseudo-random float
+    float in range [min, max] (inclusive)
+*/
+float float_rand(float min, float max){
+    float range = max - min;
+    float scale = rand() / (float) RAND_MAX; /* [0, 1.0] */
+    return min + scale * ( range );      /* [min, max] */
+}
+
 /* function createItems: creates shared memory for current items
     using shmget & shmat. randomizes out of hard coded dishes collection.
     returns address of shared memory or null if fails
@@ -366,15 +389,15 @@ Item* createItems(int nItems, int* segmentId)
     }
     else
     {
-        //menu = new (shmat (*segmentId,0, 0)) Dish;
+        
         if ((items = (Item*)shmat (*segmentId,0,0)) == (void*)-1){
             cerr << "Shared memory attach failed\n";
             return NULL;
         }
 
         for(int i=0; i < nItems; i++)
-        {
-            items[i] = Item(i, rand() % 100 + 1, dishes[rand() % nDishes] );
+        {   
+            items[i] = Item(i, int_rand(1,100), dishes[int_rand(0,nDishes-1)] );
         }
     }
 
@@ -411,7 +434,6 @@ Order* createOrders(int* segmentId)
     }
     else
     {
-        //menu = new (shmat (*segmentId,0, 0)) Dish;
         if ((orders = (Order*)shmat (*segmentId,0,0)) == (void*)-1){
             cerr << "Shared memory attach failed\n";
             return NULL;
@@ -450,7 +472,6 @@ int* createItemsReadCounter(int* segmentId)
     }
     else
     {
-        //menu = new (shmat (*segmentId,0, 0)) Dish;
         if ((ItemsReadCounter = (int*)shmat (*segmentId,0,0)) == (void*)-1){
             cerr << "Shared memory attach failed\n";
             return NULL;
@@ -475,7 +496,6 @@ int* createCustomersReadCounter(int* segmentId)
     }
     else
     {
-        //menu = new (shmat (*segmentId,0, 0)) Dish;
         if ((customersReadCounter = (int*)shmat (*segmentId,0,0)) == (void*)-1){
             cerr << "Shared memory attach failed\n";
             return NULL;
@@ -500,7 +520,6 @@ int* createOrdersCounter(int* segmentId)
     }
     else
     {
-        //menu = new (shmat (*segmentId,0, 0)) Dish;
         if ((ordersCounter = (int*)shmat (*segmentId,0,0)) == (void*)-1){
             cerr << "Shared memory attach failed\n";
             return NULL;
@@ -531,9 +550,12 @@ void printPrompt(double simTime, int nItems, int nCustomers, int nWaiters, Item*
 void customerActions(int i,Item* items, int nItems, Order* orders,int* ordersCounter, int *customersReadCounter, int *ItemsReadCounter,
 chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> start)
 {
-    int customerSleep_MIN=3,customerSleep_MAX=6;
-    
-    sleep(rand()%(customerSleep_MAX-customerSleep_MIN+1)+customerSleep_MIN);
+
+    float nearest = roundf(float_rand(CUSTOMER_SLEEP_MIN, CUSTOMER_SLEEP_MAX) * 1000) / 1000;
+    int CONVERT_TO_MILLISECONDS = (int)(nearest * 1000);
+
+    this_thread::sleep_for(chrono::milliseconds( CONVERT_TO_MILLISECONDS ));
+    // sleep( float_rand(CUSTOMER_SLEEP_MIN, CUSTOMER_SLEEP_MAX));
     
     // ITEM READER ENTER
     p(semid_ServiceQueueItems);
@@ -544,7 +566,7 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
     v(semid_ServiceQueueItems);
     v(semid_ReadCountAccessItems);
     // ITEM READ
-    Item chosenItem = items[rand()%(nItems)];
+    Item chosenItem = items[int_rand(0,nItems-1)];
     // ITEM READER EXIT
     p(semid_ReadCountAccessItems);
     (*ItemsReadCounter)--;
@@ -552,16 +574,6 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
         v(semid_ResourceAccessItems);
     v(semid_ReadCountAccessItems);
 
-
-    cout << "customer ID " << i << ": semid_ResourceAccessOrder = " << semctl(semid_ResourceAccessOrder, 0, GETVAL, 0) <<"\n"; 
-    
-    // p(semid_outputSemaphore);
-    // cout << fixed << showpoint << setprecision(3);
-    // cout
-    // << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
-    // << " Customer ID " << i 
-    // << " reads a menu about: " << chosenItem.getName();
-    // v(semid_outputSemaphore);
     
     // ORDER READER ENTER 
     p(semid_ServiceQueueOrder);
@@ -581,15 +593,15 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
             v(semid_ResourceAccessOrder);
             v(semid_ReadCountAccessOrder);
 
-        // from 0 to 10, not inclusive. if above 50%, order
-        if (( rand()%11) > 5 ){
+        // if above 50%, order
+        if ( float_rand(0,1) >= 0.5 ){
             // ORDER WRITER ENTER
             p(semid_ServiceQueueOrder);
             p(semid_ResourceAccessOrder);
             v(semid_ServiceQueueOrder);
             
             // ORDER WRITE
-            orders[0]= Order(i,chosenItem.getId(),rand()%11 + 1);
+            orders[0]= Order(i,chosenItem.getId(),int_rand(1,10));
             orders[0].clearDone();
             (*ordersCounter)++;
             // ORDER WRITER EXIT
@@ -608,7 +620,7 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
         }
         else{
             p(semid_outputSemaphore);
-             sleep(1);
+            sleep(1);
             cout << fixed << showpoint << setprecision(3);
             cout
             << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
@@ -627,13 +639,13 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
             v(semid_ReadCountAccessOrder);
 
         // from 0 to 10, not inclusive. if above 50%, order
-        if (( rand()%11) > 5){
+        if ( float_rand(0,1) >= 0.5){
             // ORDER WRITER ENTER
             p(semid_ServiceQueueOrder);
             p(semid_ResourceAccessOrder);
             v(semid_ServiceQueueOrder);
             // ORDER WRITE
-            orders[*ordersCounter]= Order(i,chosenItem.getId(),rand()% 11 + 1);
+            orders[*ordersCounter]= Order(i,chosenItem.getId(),int_rand(1,10));
             orders[*ordersCounter].clearDone();
             (*ordersCounter)++;
             // ORDER WRITER EXIT
@@ -678,9 +690,13 @@ void waiterActions(int i,Item* items, int nItems, Order* orders,int* ordersCount
 std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds>  start)
 {   
     
-    int waiterSleep_MIN=1,waiterSleep_MAX=2,orderAmount;
+    int orderAmount;
+    float nearest = roundf(float_rand(WAITER_SLEEP_MIN, WAITER_SLEEP_MAX) * 1000) / 1000;
+    int CONVERT_TO_MILLISECONDS = (int)(nearest * 1000);
 
-    sleep(rand()%(waiterSleep_MAX-waiterSleep_MIN+1)+waiterSleep_MIN);
+    this_thread::sleep_for(chrono::milliseconds( CONVERT_TO_MILLISECONDS ));
+    // sleep(CONVERT_TO_MILLISECONDS * float_rand(WAITER_SLEEP_MIN, WAITER_SLEEP_MAX));
+
     // if any orders exist
     if(*ordersCounter>0)
     {
@@ -700,7 +716,7 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
             cout << fixed << showpoint << setprecision(3);
             cout
             << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
-            << " waiter ID " << i <<" performs the order of Customer ID "<< o.getCustomerId()<<"("<<orderAmount<<" "<<items[orders[(*ordersCounter)-1].getItemId()].getName()<<")\n";
+            << " waiter ID " << i <<" performs the order of Customer ID "<< o.getCustomerId()<<" ("<<orderAmount<<" "<<items[orders[(*ordersCounter)-1].getItemId()].getName()<<")\n";
             v(semid_outputSemaphore);
 
             // ORDERS WRITE    
@@ -812,13 +828,10 @@ void catchKill(int sig){
     }
     cout << "parent process deletes semaphores\n";
     deleteSemaphore();
-    //cout << "\nPress any key to continue...\n";
-    // getchar();
+    
 }
 
 int main(int argc, char* argv[]){
-    //init menu
-
     
     int nItems, nCustomers, nWaiters, status, *ordersCounter,
          *ItemsReadCounter, *customersReadCounter;
@@ -838,9 +851,6 @@ int main(int argc, char* argv[]){
     sigIntHandler.sa_flags = 0;
 
     sigaction(SIGINT, &sigIntHandler, NULL);
-
-    //signal(SIGINT, catchKill); 
-    
 
     if (initSemaphores() == -1){
         cout << "init semaphores fail\n";
@@ -881,11 +891,11 @@ int main(int argc, char* argv[]){
     ManagerProcess(simTime, items, nItems, orders, ordersCounter, nCustomers, nWaiters, 
         ItemsReadCounter, customersReadCounter );
 
-    
     printItemsList(items, nItems);
     cout << "=================================\n";
     calcTotalOrders(items, nItems);
     deleteSemaphore();
+
     cout << "\nPress any key to continue...\n";
     getchar();
     return 0;

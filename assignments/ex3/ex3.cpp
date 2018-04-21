@@ -420,14 +420,27 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
         if (( rand()%11) > 5){
             orders[*ordersCounter]= Order(i,chosenItem.getId(),rand()% 11 + 1);
             orders[*ordersCounter].clearDone();
+            
             p(semid_outputSemaphore);
-            cout << "(ordered, " << orders[*ordersCounter].getAmount() <<")\n";
+            sleep(1);
+            cout << fixed << showpoint << setprecision(3);
+            cout
+            << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
+            << " Customer ID " << i 
+            << " reads a menu about: " << chosenItem.getName();
+            cout << " (ordered, " << orders[*ordersCounter].getAmount() <<")\n";
             v(semid_outputSemaphore);
+            
             (*ordersCounter)++;
           }
         else{
             p(semid_outputSemaphore);
-            cout <<"(doesn't want to order)\n";
+            sleep(1);
+            cout << fixed << showpoint << setprecision(3);
+            cout
+            << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
+            << " Customer ID " << i 
+            <<" (doesn't want to order)\n";
             v(semid_outputSemaphore);
         }
     }

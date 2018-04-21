@@ -27,6 +27,14 @@
         "utility": "cpp",
         "cerrno": "cpp",
         "chrono": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "cmath": "cpp",
+        "cstring": "cpp",
+        "ctime": "cpp",
+        "functional": "cpp",
+        "memory": "cpp",
+        "ratio": "cpp",
+        "thread": "cpp",
+        "tuple": "cpp"
     }
 }

@@ -462,13 +462,14 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
 
         //customers
         if (0 <= i && i < nCustomers){
+            p(semid_outputSemaphore);
             cout << fixed << showpoint << setprecision(3);
             cout
             << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
             << " Customer " << i 
             << ": Created PID "  << getpid() 
             << " PPID " << getppid() << "\n";
-            
+            v(semid_outputSemaphore);
             while(simTime >= chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000){
                 customerActions(i,items,nItems,orders,ordersCounter, start);
             

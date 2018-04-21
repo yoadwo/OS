@@ -376,13 +376,13 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
     sleep(rand()%(customerSleep_MAX-customerSleep_MIN+1)+customerSleep_MIN);
     Item chosenItem = items[rand()%(nItems)];
     
-    p(semid_outputSemaphore);
-    cout << fixed << showpoint << setprecision(3);
-    cout
-    << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
-    << " Customer ID " << i 
-    << " reads a menu about: " << chosenItem.getName();
-    v(semid_outputSemaphore);
+    // p(semid_outputSemaphore);
+    // cout << fixed << showpoint << setprecision(3);
+    // cout
+    // << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
+    // << " Customer ID " << i 
+    // << " reads a menu about: " << chosenItem.getName();
+    // v(semid_outputSemaphore);
     
     sleep(1);
     if(*ordersCounter==0){
@@ -406,14 +406,27 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
         if (( rand()%11) > 5){
             orders[*ordersCounter]= Order(i,chosenItem.getId(),rand()% 11 + 1);
             orders[*ordersCounter].clearDone();
+            
             p(semid_outputSemaphore);
-            cout << "(ordered, " << orders[*ordersCounter].getAmount() <<")\n";
+            sleep(1);
+            cout << fixed << showpoint << setprecision(3);
+            cout
+            << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
+            << " Customer ID " << i 
+            << " reads a menu about: " << chosenItem.getName();
+            cout << " (ordered, " << orders[*ordersCounter].getAmount() <<")\n";
             v(semid_outputSemaphore);
+            
             (*ordersCounter)++;
           }
         else{
             p(semid_outputSemaphore);
-            cout <<"(doesn't want to order)\n";
+            sleep(1);
+            cout << fixed << showpoint << setprecision(3);
+            cout
+            << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
+            << " Customer ID " << i 
+            <<" (doesn't want to order)\n";
             v(semid_outputSemaphore);
         }
     }
@@ -510,8 +523,7 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
             }
             p(semid_outputSemaphore);
             cout
-            << chrono::duration<dou
-            ble, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
+            << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
             << " Waiter " << i 
             << ": PID "  << getpid() 
             << " end work PPID " << getppid() << "\n";

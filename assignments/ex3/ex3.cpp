@@ -8,6 +8,7 @@
 #include <thread>
 #include <cstdlib>
 
+#include <signal.h>
 #include <math.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -49,6 +50,177 @@ int segmentId_ordersCount;
 int segmentId_customerCounter;
 int segmentId_waiterCounter;
 
+pid_t parent = getpid();
+
+/* function initsem: inits a semaphore with value 1
+    creates a semaphore array with a single element with a value of 1
+    input: recieves a hashed key (key_t: semkey) and returns a semaphore id
+*/
+int initsem(key_t semkey)
+{
+    int status = 0, semid;
+    union semun{
+        int val;
+        struct semid_ds *stat;
+        ushort *array;
+    } ctl_arg;
+    
+    // semget (key, nsems, semflag)
+    if(( semid = semget(semkey, 1, SEMPERM | IPC_CREAT | IPC_EXCL )) == -1 )
+    {
+        if( errno == EEXIST )
+        {
+            semid = semget( semkey, 1, 0 );
+            if (semid == -1)
+            {
+                cerr << "Error connecting to existing semaphores\n";
+                return -1;
+            }
+            else
+            {
+                cout << "Successfully connected to existing semaphore\n";
+                ctl_arg.val = 1;    
+                status = semctl(semid, 0, SETVAL, ctl_arg);
+                cout <<" successfully set semphore to 1 on new semaphore \n";
+            }
+            
+        } 
+        else
+        {
+            cerr << "Error creating new semaphores\n";
+            return -1;
+        }
+
+    }
+    else
+    {
+        cout << "Successfully created new semaphore\n";
+        ctl_arg.val = 1;
+        status = semctl(semid, 0, SETVAL, ctl_arg);
+        cout <<" successfully set semphore to 1 on new semaphore \n";
+    }
+    
+    if( semid == -1 || status == -1 )
+    {
+        cerr << "Error initsem\n";
+        return -1;
+    }
+    
+    return semid;
+}
+
+/* function initSemaphores: init semaphores for items, customers, orders, screen
+    returns -1 if any semaphore fails and reports its name
+
+*/
+int initSemaphores(){
+    key_t semkey_ResourceAccessItems = ftok(".",'a');
+    key_t semkey_ReadCountAccessItems = ftok(".",'b');
+    key_t semkey_ServiceQueueItems = ftok(".",'c');
+    key_t semkey_ResourceAccessCustomer = ftok(".",'d');
+    key_t semkey_ReadCountAccessCustomer = ftok(".",'e');
+    key_t semkey_ServiceQueueCustomer = ftok(".",'f');
+    key_t semkey_ResourceAccessOrder = ftok(".",'g');
+    key_t semkey_ReadCountAccessOrder = ftok(".",'h');
+    key_t semkey_ServiceQueueOrder = ftok(".",'i');
+    key_t semkey_OutputSemaphore = ftok(".",'j');
+
+    cout <<" trying sem for semkey_ResourceAccessItems\n";
+    semid_ResourceAccessItems = initsem(semkey_ResourceAccessItems);
+    if (semid_ResourceAccessItems == -1){
+        cerr << "semaphore semid_ResourceAccessItems failed\n";
+        return -1;
+    }else
+        cout << "value of semid_ResourceAccessItems is " << semctl(semid_ResourceAccessItems, 0, GETVAL, 0) <<"\n"; 
+    
+    cout <<" trying sem for semkey_ReadCountAccessItems\n";
+    semid_ReadCountAccessItems = initsem(semkey_ReadCountAccessItems);
+    if (semid_ReadCountAccessItems == -1){
+        cerr << "semaphore semid_ReadCountAccessItems failed\n";
+        return -1;
+    }else
+        cout << "value of semid_ReadCountAccessItems is " << semctl(semid_ReadCountAccessItems, 0, GETVAL, 0) <<"\n"; 
+
+    cout <<" trying sem for semkey_ServiceQueueItems\n";
+    semid_ServiceQueueItems = initsem(semkey_ServiceQueueItems);
+    if (semid_ServiceQueueItems == -1){
+        cerr << "semaphore semid_ServiceQueueItems failed\n";
+        return -1;
+    }else
+        cout << "value of semid_ServiceQueueItems is " << semctl(semid_ServiceQueueItems, 0, GETVAL, 0) <<"\n"; 
+
+    cout <<" trying sem for semkey_ResourceAccessCustomer\n";
+    semid_ResourceAccessCustomer = initsem(semkey_ResourceAccessCustomer);
+    if (semid_ResourceAccessCustomer == -1){
+        cerr << "semaphore semid_ResourceAccessCustomer failed\n";
+        return -1;
+    }else
+        cout << "value of semid_ResourceAccessCustomer is " << semctl(semid_ResourceAccessCustomer, 0, GETVAL, 0) <<"\n"; 
+
+    cout <<" trying sem for semkey_ReadCountAccessCustomer\n";
+    semid_ReadCountAccessCustomer = initsem(semkey_ReadCountAccessCustomer);
+    if (semid_ReadCountAccessCustomer == -1){
+        cerr << "semaphore semid_ReadCountAccessCustomer failed\n";
+        return -1;
+    }else
+        cout << "value of semid_ReadCountAccessCustomer is " << semctl(semid_ReadCountAccessCustomer, 0, GETVAL, 0) <<"\n"; 
+
+    cout <<" trying sem for semkey_ServiceQueueCustomer\n";
+    semid_ServiceQueueCustomer = initsem(semkey_ServiceQueueCustomer);
+    if (semid_ServiceQueueCustomer == -1){
+        cerr << "semaphore semid_ServiceQueueCustomer failed\n";
+        return -1;
+    }else
+        cout << "value of semid_ServiceQueueCustomer is " << semctl(semid_ServiceQueueCustomer, 0, GETVAL, 0) <<"\n"; 
+
+    cout <<" trying sem for semkey_ResourceAccessOrder\n";
+    semid_ResourceAccessOrder = initsem(semkey_ResourceAccessOrder);
+    if (semid_ResourceAccessOrder == -1){
+        cerr << "semaphore semid_ResourceAccessOrder failed\n";
+        return -1;
+    }else
+        cout << "value of semid_ResourceAccessOrder is " << semctl(semid_ResourceAccessOrder, 0, GETVAL, 0) <<"\n"; 
+
+    cout <<" trying sem for semkey_ReadCountAccessOrder\n";
+    semid_ReadCountAccessOrder = initsem(semkey_ReadCountAccessOrder);
+    if (semid_ReadCountAccessOrder == -1){
+        cerr << "semaphore semid_ReadCountAccessOrder failed\n";
+        return -1;
+    }else
+        cout << "value of semid_ReadCountAccessOrder is " << semctl(semid_ReadCountAccessOrder, 0, GETVAL, 0) <<"\n"; 
+
+    cout <<" trying sem for semkey_ServiceQueueOrder\n";
+    semid_ServiceQueueOrder = initsem(semkey_ServiceQueueOrder);
+    if (semid_ServiceQueueOrder == -1){
+        cerr << "semaphore semid_ServiceQueueOrder failed\n";
+        return -1;
+    }else
+        cout << "value of semid_ServiceQueueOrder is " << semctl(semid_ServiceQueueOrder, 0, GETVAL, 0) <<"\n"; 
+
+    cout <<" trying sem for semkey_OutputSemaphore\n";
+    semid_outputSemaphore = initsem(semkey_OutputSemaphore);
+    if (semid_outputSemaphore == -1){
+        cerr << "semaphore semid_outputSemaphore failed\n";
+        return -1;
+    }else
+        cout << "value of semid_outputSemaphore is " << semctl(semid_outputSemaphore, 0, GETVAL, 0) <<"\n"; 
+
+    return 0;
+}
+
+void deleteSemaphore()
+{
+	semctl(semid_ResourceAccessItems, 0, IPC_RMID, NULL);
+	semctl(semid_ReadCountAccessItems, 0, IPC_RMID, NULL);
+	semctl(semid_ServiceQueueItems, 0, IPC_RMID, NULL);
+	semctl(semid_ResourceAccessCustomer, 0, IPC_RMID, NULL);
+	semctl(semid_ReadCountAccessCustomer, 0, IPC_RMID, NULL);
+	semctl(semid_ServiceQueueCustomer, 0, IPC_RMID, NULL);
+	semctl(semid_ResourceAccessOrder, 0, IPC_RMID, NULL);
+	semctl(semid_ReadCountAccessOrder, 0, IPC_RMID, NULL);
+	semctl(semid_ServiceQueueOrder, 0, IPC_RMID, NULL);
+	semctl(semid_outputSemaphore, 0, IPC_RMID, NULL);
+}
 
 /* function p: lower semaphore value
     copy from lab
@@ -147,145 +319,6 @@ int setup (int argc, char* argv[], int *nItems, int *nCustomers, int *nWaiters, 
     }
 
     return status;
-}
-
-/* function initsem: inits a semaphore with value 1
-    creates a semaphore array with a single element with a value of 1
-    input: recieves a hashed key (key_t: semkey) and returns a semaphore id
-*/
-int initsem(key_t semkey)
-{
-    int status = 0, semid;
-    union semun{
-        int val;
-        struct semid_ds *stat;
-        ushort *array;
-    } ctl_arg;
-    
-    // semget (key, nsems, semflag)
-    if(( semid = semget(semkey, 1, SEMPERM | IPC_CREAT | IPC_EXCL )) == -1 )
-    {
-        if( errno == EEXIST )
-        {
-            semid = semget( semkey, 1, 0 );
-            if (semid == -1){
-                cerr << "Error creating semaphores\n";
-                return -1;
-            }
-        } else {
-            cerr << "Error creating semaphores\n";
-            return -1;
-        }
-
-    }
-    else
-    {
-        ctl_arg.val = 1;
-        status = semctl(semid, 0, SETVAL, ctl_arg);
-        cout <<" successfully put 1 in semphore\n";
-    }
-    
-    if( semid == -1 || status == -1 )
-    {
-        cerr << "Error initsem\n";
-        return -1;
-    }
-    
-    cout << "value of some semaphore isr is " << semctl(semid, 0, GETVAL, ctl_arg) <<"\n"; 
-    return semid;
-}
-
-/* function initSemaphores: init semaphores for items, customers, orders, screen
-    returns -1 if any semaphore fails and reports its name
-
-*/
-int initSemaphores(){
-    key_t semkey_ResourceAccessItems = ftok(".",'a');
-    key_t semkey_ReadCountAccessItems = ftok(".",'b');
-    key_t semkey_ServiceQueueItems = ftok(".",'c');
-    key_t semkey_ResourceAccessCustomer = ftok(".",'d');
-    key_t semkey_ReadCountAccessCustomer = ftok(".",'e');
-    key_t semkey_ServiceQueueCustomer = ftok(".",'f');
-    key_t semkey_ResourceAccessOrder = ftok(".",'g');
-    key_t semkey_ReadCountAccessOrder = ftok(".",'h');
-    key_t semkey_ServiceQueueOrder = ftok(".",'i');
-    key_t semkey_OutputSemaphore = ftok(".",'j');
-
-    cout <<" tryint sem for semkey_ResourceAccessItems\n";
-    semid_ResourceAccessItems = initsem(semkey_ResourceAccessItems);
-    if (semid_ResourceAccessItems == -1){
-        cerr << "semaphore semid_ResourceAccessItems failed\n";
-        return -1;
-    }
-    cout <<" tryint sem for semkey_ReadCountAccessItems\n";
-    semid_ReadCountAccessItems = initsem(semkey_ReadCountAccessItems);
-    if (semid_ReadCountAccessItems == -1){
-        cerr << "semaphore semid_ReadCountAccessItems failed\n";
-        return -1;
-    }
-    cout <<" tryint sem for semkey_ServiceQueueItems\n";
-    semid_ServiceQueueItems = initsem(semkey_ServiceQueueItems);
-    if (semid_ServiceQueueItems == -1){
-        cerr << "semaphore semid_ServiceQueueItems failed\n";
-        return -1;
-    }
-    cout <<" trying sem for semkey_ResourceAccessCustomer\n";
-    semid_ResourceAccessCustomer = initsem(semkey_ResourceAccessCustomer);
-    if (semid_ResourceAccessCustomer == -1){
-        cerr << "semaphore semid_ResourceAccessCustomer failed\n";
-        return -1;
-    }
-    cout <<" trying sem for semkey_ReadCountAccessCustomer\n";
-    semid_ReadCountAccessCustomer = initsem(semkey_ReadCountAccessCustomer);
-    if (semid_ReadCountAccessCustomer == -1){
-        cerr << "semaphore semid_ReadCountAccessCustomer failed\n";
-        return -1;
-    }
-    cout <<" trying sem for semkey_ServiceQueueCustomer\n";
-    semid_ServiceQueueCustomer = initsem(semkey_ServiceQueueCustomer);
-    if (semid_ServiceQueueCustomer == -1){
-        cerr << "semaphore semid_ServiceQueueCustomer failed\n";
-        return -1;
-    }
-    cout <<" trying sem for semkey_ResourceAccessOrder\n";
-    semid_ResourceAccessOrder = initsem(semkey_ResourceAccessOrder);
-    if (semid_ResourceAccessOrder == -1){
-        cerr << "semaphore semid_ResourceAccessOrder failed\n";
-        return -1;
-    }
-    cout <<" trying sem for semkey_ReadCountAccessOrder\n";
-    semid_ReadCountAccessOrder = initsem(semkey_ReadCountAccessOrder);
-    if (semid_ReadCountAccessOrder == -1){
-        cerr << "semaphore semid_ReadCountAccessOrder failed\n";
-        return -1;
-    }
-    cout <<" trying sem for semkey_ServiceQueueOrder\n";
-    semid_ServiceQueueOrder = initsem(semkey_ServiceQueueOrder);
-    if (semid_ServiceQueueOrder == -1){
-        cerr << "semaphore semid_ServiceQueueOrder failed\n";
-        return -1;
-    }
-    cout <<" trying sem for semkey_OutputSemaphore\n";
-    semid_outputSemaphore = initsem(semkey_OutputSemaphore);
-    if (semid_outputSemaphore == -1){
-        cerr << "semaphore semid_outputSemaphore failed\n";
-        return -1;
-    }
-    return 0;
-}
-
-void deleteSemaphore()
-{
-	semctl(semid_ResourceAccessItems, 0, IPC_RMID, NULL);
-	semctl(semid_ReadCountAccessItems, 0, IPC_RMID, NULL);
-	semctl(semid_ServiceQueueItems, 0, IPC_RMID, NULL);
-	semctl(semid_ResourceAccessCustomer, 0, IPC_RMID, NULL);
-	semctl(semid_ReadCountAccessCustomer, 0, IPC_RMID, NULL);
-	semctl(semid_ServiceQueueCustomer, 0, IPC_RMID, NULL);
-	semctl(semid_ResourceAccessOrder, 0, IPC_RMID, NULL);
-	semctl(semid_ReadCountAccessOrder, 0, IPC_RMID, NULL);
-	semctl(semid_ServiceQueueOrder, 0, IPC_RMID, NULL);
-	semctl(semid_outputSemaphore, 0, IPC_RMID, NULL);
 }
 
 /* function createItems: creates shared memory for current items
@@ -456,7 +489,10 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
     
     
 
-    cout <<"customer " << i << "enter counter = " << *customersReadCounter <<"\n";
+    cout <<"customer " << i << " enter counter = " << *customersReadCounter <<"\n";
+    cout << "value of semid_ServiceQueueOrder is " << semctl(semid_ServiceQueueOrder, 0, GETVAL, 0) <<"\n"; 
+    cout << "value of semid_ReadCountAccessOrder is " << semctl(semid_ReadCountAccessOrder, 0, GETVAL, 0) <<"\n"; 
+    cout << "value of semid_ResourceAccessOrder is " << semctl(semid_ResourceAccessOrder, 0, GETVAL, 0) <<"\n"; 
     
     // p(semid_outputSemaphore);
     // cout << fixed << showpoint << setprecision(3);
@@ -466,29 +502,29 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
     // << " reads a menu about: " << chosenItem.getName();
     // v(semid_outputSemaphore);
     
-    p(semid_ServiceQueueOrder);
-    p(semid_ReadCountAccessOrder);
-    if ((*customersReadCounter) == 0)
-        p(semid_ResourceAccessOrder);
-    (*customersReadCounter)++;
-    v(semid_ServiceQueueOrder);
-    v(semid_ReadCountAccessOrder);
+    // p(semid_ServiceQueueOrder);
+    // p(semid_ReadCountAccessOrder);
+    // if ((*customersReadCounter) == 0)
+        // p(semid_ResourceAccessOrder);
+    // (*customersReadCounter)++;
+    // v(semid_ServiceQueueOrder);
+    // v(semid_ReadCountAccessOrder);
 
         
     if(*ordersCounter==0){
         // from 0 to 10, not inclusive. if above 50%, order
        
         if (( rand()%11) > 5 ){
-            p(semid_ServiceQueueOrder);
-            p(semid_ResourceAccessOrder);
-            v(semid_ServiceQueueOrder);
+            // p(semid_ServiceQueueOrder);
+            // p(semid_ResourceAccessOrder);
+            // v(semid_ServiceQueueOrder);
             
             
             orders[0]= Order(i,chosenItem.getId(),rand()%11 + 1);
             orders[0].clearDone();
             (*ordersCounter)++;
 
-            v(semid_ResourceAccessOrder);
+            // v(semid_ResourceAccessOrder);
 
             p(semid_outputSemaphore);
             sleep(1);
@@ -661,6 +697,23 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
     while ((wait(0)) > 0);
 }
 
+/*  function catchKill: catches ctrl+c signal
+    waits for all children to exit, then parent kills semaphores
+*/
+void catchKill(int sig){
+    // parent informs signal and waits for children
+    if (getpid() == parent){
+        cout << "signal kill caught!\n";
+        while ((wait(0)) > 0);
+    // children exit
+    } else {
+        exit(1);
+    }
+    cout << "parent process deletes semaphores\n";
+    deleteSemaphore();
+    //cout << "\nPress any key to continue...\n";
+    // getchar();
+}
 
 int main(int argc, char* argv[]){
     //init menu
@@ -676,7 +729,17 @@ int main(int argc, char* argv[]){
     status = setup(argc, argv, &nItems, &nCustomers, &nWaiters, &simTime);
     if (status == 1)
         return 1;
-    deleteSemaphore();
+
+    struct sigaction sigIntHandler;
+
+    sigIntHandler.sa_handler = catchKill;
+    sigemptyset(&sigIntHandler.sa_mask);
+    sigIntHandler.sa_flags = 0;
+
+    sigaction(SIGINT, &sigIntHandler, NULL);
+
+    //signal(SIGINT, catchKill); 
+    
 
     if (initSemaphores() == -1){
         cout << "init semaphores fail\n";

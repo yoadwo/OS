@@ -258,6 +258,22 @@ int v(int semid)
     return 0;
 }
 
+void lockOrdersReader(){}
+
+void releaseOrdersReader(){}
+
+void lockOrdersWriter(){}
+
+void releaseOrdersWriter(){}
+
+void lockItemsReader(){}
+
+void releaseItemsReader(){}
+
+void lockItemsWriter(){}
+
+void releaseItemsWriter(){}
+
 /*  function show_usage: print usage instructions
     when enters program
 */
@@ -489,42 +505,48 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
     sleep(rand()%(customerSleep_MAX-customerSleep_MIN+1)+customerSleep_MIN);
     Item chosenItem = items[rand()%(nItems)];
     
-    cout <<"customer " << i << " enter counter = " << *customersReadCounter <<"\n";
-    cout << "value of semid_ServiceQueueOrder is " << semctl(semid_ServiceQueueOrder, 0, GETVAL, 0) <<"\n"; 
-    cout << "value of semid_ReadCountAccessOrder is " << semctl(semid_ReadCountAccessOrder, 0, GETVAL, 0) <<"\n"; 
-    cout << "value of semid_ResourceAccessOrder is " << semctl(semid_ResourceAccessOrder, 0, GETVAL, 0) <<"\n"; 
     
-    p(semid_outputSemaphore);
-    cout << fixed << showpoint << setprecision(3);
-    cout
-    << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
-    << " Customer ID " << i 
-    << " reads a menu about: " << chosenItem.getName();
-    v(semid_outputSemaphore);
+    cout << "customer ID " << i << ": semid_ResourceAccessOrder = " << semctl(semid_ResourceAccessOrder, 0, GETVAL, 0) <<"\n"; 
     
-    // p(semid_ServiceQueueOrder);
-    // p(semid_ReadCountAccessOrder);
-    // if ((*customersReadCounter) == 0)
-        // p(semid_ResourceAccessOrder);
-    // (*customersReadCounter)++;
-    // v(semid_ServiceQueueOrder);
-    // v(semid_ReadCountAccessOrder);
+    // p(semid_outputSemaphore);
+    // cout << fixed << showpoint << setprecision(3);
+    // cout
+    // << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
+    // << " Customer ID " << i 
+    // << " reads a menu about: " << chosenItem.getName();
+    // v(semid_outputSemaphore);
+    
+    //READER ENTER 
+    p(semid_ServiceQueueOrder);
+    p(semid_ReadCountAccessOrder);
+    if ((*customersReadCounter) == 0)
+        p(semid_ResourceAccessOrder);
+    (*customersReadCounter)++;
+    v(semid_ServiceQueueOrder);
+    v(semid_ReadCountAccessOrder);
 
-        
+    //READ
     if(*ordersCounter==0){
+        //READER EXIT
+        p(semid_ReadCountAccessOrder);
+        (*customersReadCounter)--;
+        if ((*customersReadCounter) == 0)
+            v(semid_ResourceAccessOrder);
+            v(semid_ReadCountAccessOrder);
+
         // from 0 to 10, not inclusive. if above 50%, order
-       
         if (( rand()%11) > 5 ){
-            // p(semid_ServiceQueueOrder);
-            // p(semid_ResourceAccessOrder);
-            // v(semid_ServiceQueueOrder);
+            // WRITER ENTER
+            p(semid_ServiceQueueOrder);
+            p(semid_ResourceAccessOrder);
+            v(semid_ServiceQueueOrder);
             
-            
+            // WRITE
             orders[0]= Order(i,chosenItem.getId(),rand()%11 + 1);
             orders[0].clearDone();
             (*ordersCounter)++;
-
-            // v(semid_ResourceAccessOrder);
+            // WRITER EXIT
+            v(semid_ResourceAccessOrder);
 
             p(semid_outputSemaphore);
             sleep(1);
@@ -532,7 +554,7 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
             cout
             << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
             << " Customer ID " << i 
-            << " reads a menu about: " << chosenItem.getName() << "(ordered, " << orders[0].getAmount() <<")\n";
+            << " reads a menu about: " << chosenItem.getName() << " (ordered, " << orders[0].getAmount() <<")\n";
             v(semid_outputSemaphore);
             
 
@@ -550,17 +572,25 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
         }
     }
     else if(orders[(*ordersCounter)-1].isDone()){
+        //READER EXIT
+        p(semid_ReadCountAccessOrder);
+        (*customersReadCounter)--;
+        if ((*customersReadCounter) == 0)
+            v(semid_ResourceAccessOrder);
+            v(semid_ReadCountAccessOrder);
+
         // from 0 to 10, not inclusive. if above 50%, order
         if (( rand()%11) > 5){
-            // p(semid_ServiceQueueOrder);
-            // p(semid_ResourceAccessOrder);
-            // v(semid_ServiceQueueOrder);
-            //enter write CS
+            // WRITER ENTER
+            p(semid_ServiceQueueOrder);
+            p(semid_ResourceAccessOrder);
+            v(semid_ServiceQueueOrder);
+            // WRITE
             orders[*ordersCounter]= Order(i,chosenItem.getId(),rand()% 11 + 1);
             orders[*ordersCounter].clearDone();
             (*ordersCounter)++;
-            //exit write CS
-            // v(semid_ResourceAccessOrder);
+            // WRITER EXIT
+            v(semid_ResourceAccessOrder);
 
             p(semid_outputSemaphore);
             sleep(1);
@@ -585,13 +615,15 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
             v(semid_outputSemaphore);
         }
     }
+    else{
+        // READER EXIT
+        p(semid_ReadCountAccessOrder);
+        (*customersReadCounter)--;
+        if ((*customersReadCounter) == 0)
+            v(semid_ResourceAccessOrder);
+            v(semid_ReadCountAccessOrder);
+    }
     
-    //p(semid_ReadCountAccessOrder);
-    //(*customersReadCounter)--;
-    //if ((*customersReadCounter) == 0)
-    //    v(semid_ResourceAccessOrder);
-    
-    //v(semid_ReadCountAccessOrder);
 
 }
 
@@ -602,21 +634,44 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
     int waiterSleep_MIN=1,waiterSleep_MAX=2,orderAmount;
 
     sleep(rand()%(waiterSleep_MAX-waiterSleep_MIN+1)+waiterSleep_MIN);
+    // if any orders exist
     if(*ordersCounter>0)
     {
+        // only if last order is set to false
+        
+        
+        // ORDERS WRITE ENTER
+        p(semid_ServiceQueueOrder);
+        p(semid_ResourceAccessOrder);
+        v(semid_ServiceQueueOrder);
+        // ORDERS WRITE
         if(!(orders[(*ordersCounter)-1].isDone()))
         {
+            
             Order o=orders[(*ordersCounter)-1];    
             orderAmount=orders[(*ordersCounter)-1].getAmount();
+            
             p(semid_outputSemaphore);
             cout << fixed << showpoint << setprecision(3);
             cout
             << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
             << " waiter ID " << i <<" performs the order of Customer ID "<< o.getCustomerId()<<"("<<orderAmount<<" "<<items[orders[(*ordersCounter)-1].getItemId()].getName()<<")\n";
             v(semid_outputSemaphore);
+
+            // 
+            orders[(*ordersCounter)-1]._done=true; 
+            // ITEMS WRITER ENTER
+            p(semid_ServiceQueueItems);
+            p(semid_ResourceAccessItems);
+            v(semid_ServiceQueueItems);
+            // ITEMS WRITE
             items[orders[(*ordersCounter)-1].getItemId()]._totalOrdered+=orderAmount;
-            orders[(*ordersCounter)-1]._done=true;
+            // ITEMS WRITER EXIT
+            v(semid_ResourceAccessItems);
+            
         }
+        // ORDERS WRITE EXIT
+        v(semid_ResourceAccessOrder);
 
     }
 
@@ -643,6 +698,7 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
         }
     }
     if (childpid ==0 ){
+        // make new random seed for each child
         srand (time(NULL) * getpid());
         //parent forks children
         // first children with lower i values will be customers

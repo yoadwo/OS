@@ -423,10 +423,12 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
         {
             Order o=orders[(*ordersCounter)-1];    
             orderAmount=orders[(*ordersCounter)-1].getAmount();
+            p(semid_outputSemaphore);
             cout << fixed << showpoint << setprecision(3);
             cout
             << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
             << " waiter ID " << i <<" performs the order of Customer ID "<< o.getCustomerId()<<"("<<orderAmount<<" "<<items[orders[(*ordersCounter)-1].getItemId()].getName()<<")\n";
+            v(semid_outputSemaphore);
             items[orders[(*ordersCounter)-1].getItemId()]._totalOrdered+=orderAmount;
             orders[(*ordersCounter)-1]._done=true;
         }
@@ -474,32 +476,36 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
                 customerActions(i,items,nItems,orders,ordersCounter, start);
             
             }
+            p(semid_outputSemaphore);
             cout
             << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
             << " Customer " << i 
             << ": PID "  << getpid() 
             << " end work PPID " << getppid() << "\n";
-
+            v(semid_outputSemaphore);
         
         } 
         //waiter       
         else if (nCustomers <= i && i < nCustomers + nWaiters) { 
+            p(semid_outputSemaphore);
             cout << fixed << showpoint << setprecision(3);
             cout
             << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
             << " Waiter " << i 
             << ": Created PID "  << getpid() 
             << " PPID " << getppid() << "\n";
-            
+            v(semid_outputSemaphore);
             while(simTime >= chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000){
                 waiterActions(i,items,nItems,orders,ordersCounter, start);
             }
+            p(semid_outputSemaphore);
             cout
-            << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
+            << chrono::duration<dou
+            ble, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
             << " Waiter " << i 
             << ": PID "  << getpid() 
             << " end work PPID " << getppid() << "\n";
-
+            v(semid_outputSemaphore);
         }
     exit(0);
     }

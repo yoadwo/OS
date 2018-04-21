@@ -49,7 +49,7 @@ int segmentId_Waiters;
 int segmentId_ordersCount;
 int segmentId_customerCounter;
 int segmentId_waiterCounter;
-
+// remember parent id, compare with future children
 pid_t parent = getpid();
 
 /* function initsem: inits a semaphore with value 1
@@ -400,6 +400,7 @@ int* createWaitersReadCounter(int* segmentId)
             return NULL;
         }
     }
+    (*waitersReadCounter) = 0;
     return waitersReadCounter;
 }
 
@@ -424,6 +425,7 @@ int* createCustomersReadCounter(int* segmentId)
             return NULL;
         }
     }
+    (*customersReadCounter) = 0;
     return customersReadCounter;
 }
 
@@ -487,20 +489,18 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
     sleep(rand()%(customerSleep_MAX-customerSleep_MIN+1)+customerSleep_MIN);
     Item chosenItem = items[rand()%(nItems)];
     
-    
-
     cout <<"customer " << i << " enter counter = " << *customersReadCounter <<"\n";
     cout << "value of semid_ServiceQueueOrder is " << semctl(semid_ServiceQueueOrder, 0, GETVAL, 0) <<"\n"; 
     cout << "value of semid_ReadCountAccessOrder is " << semctl(semid_ReadCountAccessOrder, 0, GETVAL, 0) <<"\n"; 
     cout << "value of semid_ResourceAccessOrder is " << semctl(semid_ResourceAccessOrder, 0, GETVAL, 0) <<"\n"; 
     
-    // p(semid_outputSemaphore);
-    // cout << fixed << showpoint << setprecision(3);
-    // cout
-    // << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
-    // << " Customer ID " << i 
-    // << " reads a menu about: " << chosenItem.getName();
-    // v(semid_outputSemaphore);
+    p(semid_outputSemaphore);
+    cout << fixed << showpoint << setprecision(3);
+    cout
+    << chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000 
+    << " Customer ID " << i 
+    << " reads a menu about: " << chosenItem.getName();
+    v(semid_outputSemaphore);
     
     // p(semid_ServiceQueueOrder);
     // p(semid_ReadCountAccessOrder);
@@ -552,15 +552,15 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
     else if(orders[(*ordersCounter)-1].isDone()){
         // from 0 to 10, not inclusive. if above 50%, order
         if (( rand()%11) > 5){
-            p(semid_ServiceQueueOrder);
-            p(semid_ResourceAccessOrder);
-            v(semid_ServiceQueueOrder);
+            // p(semid_ServiceQueueOrder);
+            // p(semid_ResourceAccessOrder);
+            // v(semid_ServiceQueueOrder);
             //enter write CS
             orders[*ordersCounter]= Order(i,chosenItem.getId(),rand()% 11 + 1);
             orders[*ordersCounter].clearDone();
             (*ordersCounter)++;
             //exit write CS
-            v(semid_ResourceAccessOrder);
+            // v(semid_ResourceAccessOrder);
 
             p(semid_outputSemaphore);
             sleep(1);
@@ -586,12 +586,12 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
         }
     }
     
-    p(semid_ReadCountAccessOrder);
-    (*customersReadCounter)--;
-    if ((*customersReadCounter) == 0)
-        v(semid_ResourceAccessOrder);
+    //p(semid_ReadCountAccessOrder);
+    //(*customersReadCounter)--;
+    //if ((*customersReadCounter) == 0)
+    //    v(semid_ResourceAccessOrder);
     
-    v(semid_ReadCountAccessOrder);
+    //v(semid_ReadCountAccessOrder);
 
 }
 
@@ -767,13 +767,12 @@ int main(int argc, char* argv[]){
         cerr << "error creating waiters read counter\n";
         return 1;
     }
-    (*waitersReadCounter) = 0;
+    
     customersReadCounter = createCustomersReadCounter(&segmentId_customerCounter);
     if (customersReadCounter == NULL){
         cerr << "error creating customers read counter\n";
         return 1;
     }
-    (*customersReadCounter) = 0;
 
     
     printPrompt(simTime, nItems, nCustomers, nWaiters, items);

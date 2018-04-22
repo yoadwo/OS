@@ -274,21 +274,6 @@ int v(int semid)
     return 0;
 }
 
-void lockOrdersReader(){}
-
-void releaseOrdersReader(){}
-
-void lockOrdersWriter(){}
-
-void releaseOrdersWriter(){}
-
-void lockItemsReader(){}
-
-void releaseItemsReader(){}
-
-void lockItemsWriter(){}
-
-void releaseItemsWriter(){}
 
 /*  function show_usage: print usage instructions
     when enters program
@@ -636,7 +621,7 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
         (*customersReadCounter)--;
         if ((*customersReadCounter) == 0)
             v(semid_ResourceAccessOrder);
-            v(semid_ReadCountAccessOrder);
+        v(semid_ReadCountAccessOrder);
 
         // from 0 to 10, not inclusive. if above 50%, order
         if ( float_rand(0,1) >= 0.5){

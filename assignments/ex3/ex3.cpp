@@ -536,7 +536,8 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
         (*OrderReadCounter)--;
         if ((*OrderReadCounter) == 0)
             v(semid_ResourceAccessOrder);
-            v(semid_ReadCountAccessOrder);
+           
+        v(semid_ReadCountAccessOrder);
 
         // if above 50%, order
         if ( float_rand(0,1) >= 0.5 ){
@@ -581,6 +582,7 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
         (*OrderReadCounter)--;
         if ((*OrderReadCounter) == 0)
             v(semid_ResourceAccessOrder);
+           
         v(semid_ReadCountAccessOrder);
 
         // from 0 to 10, not inclusive. if above 50%, order
@@ -625,7 +627,8 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
         (*OrderReadCounter)--;
         if ((*OrderReadCounter) == 0)
             v(semid_ResourceAccessOrder);
-            v(semid_ReadCountAccessOrder);
+            
+        v(semid_ReadCountAccessOrder);
     }
     
 

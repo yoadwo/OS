@@ -22,7 +22,6 @@
 
 #include "Customer.cpp"
 #include "Order.cpp"
-//#include "Item.cpp"
 
 
 #define SEMPERM 0600
@@ -40,9 +39,6 @@ using namespace std;
 int semid_ResourceAccessItems;
 int semid_ReadCountAccessItems;
 int semid_ServiceQueueItems;
-int semid_ResourceAccessCustomer;
-int semid_ReadCountAccessCustomer;
-int semid_ServiceQueueCustomer;
 int semid_ResourceAccessOrder;
 int semid_ReadCountAccessOrder;
 int semid_ServiceQueueOrder;
@@ -50,10 +46,8 @@ int semid_outputSemaphore;
 
 int segmentId_Items;
 int segmentId_OrdersBoard;
-int segmentId_Customers;
-int segmentId_Waiters;
 int segmentId_ordersCount;
-int segmentId_customerCounter;
+int segmentId_OrderReadCounter;
 int segmentId_ItemReadCounter;
 // remember parent id, compare with future children
 pid_t parent = getpid();
@@ -123,9 +117,6 @@ int initSemaphores(){
     key_t semkey_ResourceAccessItems = ftok(".",'a');
     key_t semkey_ReadCountAccessItems = ftok(".",'b');
     key_t semkey_ServiceQueueItems = ftok(".",'c');
-    key_t semkey_ResourceAccessCustomer = ftok(".",'d');
-    key_t semkey_ReadCountAccessCustomer = ftok(".",'e');
-    key_t semkey_ServiceQueueCustomer = ftok(".",'f');
     key_t semkey_ResourceAccessOrder = ftok(".",'g');
     key_t semkey_ReadCountAccessOrder = ftok(".",'h');
     key_t semkey_ServiceQueueOrder = ftok(".",'i');
@@ -157,33 +148,6 @@ int initSemaphores(){
     }
     // else
         // cout << "value of semid_ServiceQueueItems is " << semctl(semid_ServiceQueueItems, 0, GETVAL, 0) <<"\n"; 
-
-    // cout <<" trying sem for semkey_ResourceAccessCustomer\n";
-    semid_ResourceAccessCustomer = initsem(semkey_ResourceAccessCustomer);
-    if (semid_ResourceAccessCustomer == -1){
-        cerr << "semaphore semid_ResourceAccessCustomer failed\n";
-        return -1;
-    }
-    // else
-    //     cout << "value of semid_ResourceAccessCustomer is " << semctl(semid_ResourceAccessCustomer, 0, GETVAL, 0) <<"\n"; 
-
-    // cout <<" trying sem for semkey_ReadCountAccessCustomer\n";
-    semid_ReadCountAccessCustomer = initsem(semkey_ReadCountAccessCustomer);
-    if (semid_ReadCountAccessCustomer == -1){
-        cerr << "semaphore semid_ReadCountAccessCustomer failed\n";
-        return -1;
-    }
-    // else
-    //     cout << "value of semid_ReadCountAccessCustomer is " << semctl(semid_ReadCountAccessCustomer, 0, GETVAL, 0) <<"\n"; 
-
-    // cout <<" trying sem for semkey_ServiceQueueCustomer\n";
-    semid_ServiceQueueCustomer = initsem(semkey_ServiceQueueCustomer);
-    if (semid_ServiceQueueCustomer == -1){
-        cerr << "semaphore semid_ServiceQueueCustomer failed\n";
-        return -1;
-    }
-    // else
-    //     cout << "value of semid_ServiceQueueCustomer is " << semctl(semid_ServiceQueueCustomer, 0, GETVAL, 0) <<"\n"; 
 
     // cout <<" trying sem for semkey_ResourceAccessOrder\n";
     semid_ResourceAccessOrder = initsem(semkey_ResourceAccessOrder);
@@ -229,9 +193,6 @@ void deleteSemaphore()
 	semctl(semid_ResourceAccessItems, 0, IPC_RMID, NULL);
 	semctl(semid_ReadCountAccessItems, 0, IPC_RMID, NULL);
 	semctl(semid_ServiceQueueItems, 0, IPC_RMID, NULL);
-	semctl(semid_ResourceAccessCustomer, 0, IPC_RMID, NULL);
-	semctl(semid_ReadCountAccessCustomer, 0, IPC_RMID, NULL);
-	semctl(semid_ServiceQueueCustomer, 0, IPC_RMID, NULL);
 	semctl(semid_ResourceAccessOrder, 0, IPC_RMID, NULL);
 	semctl(semid_ReadCountAccessOrder, 0, IPC_RMID, NULL);
 	semctl(semid_ServiceQueueOrder, 0, IPC_RMID, NULL);
@@ -434,8 +395,8 @@ void calcTotalOrders(Item* items, int nItmes){
         tempIncome = tempOrders * items[i].getPrice();
         cout 
         << items[i].getName() << ": "
-        << tempOrders << " Orders X " << items[i].getPrice() 
-        <<" = " << tempIncome << "\n"; 
+        << items[i].getPrice() << " NIS X "<< tempOrders << " Orders " 
+        << " = " << tempIncome << "\n"; 
         finalOrders+= tempOrders;
         finalIncome+= tempIncome;
     }
@@ -466,13 +427,13 @@ int* createItemsReadCounter(int* segmentId)
     return ItemsReadCounter;
 }
 
-/* function createCustomersReadCounter: creates shared memory customers reader semaphore
+/* function createOrderReadCounter: creates shared memory customers reader semaphore
     using shmget & shmat. 
     returns address of shared memory or null if fails
 */
-int* createCustomersReadCounter(int* segmentId)
+int* createOrderReadCounter(int* segmentId)
 {
-    int *customersReadCounter;
+    int *OrderReadCounter;
     
     if((*segmentId = shmget(IPC_PRIVATE, sizeof(int) , 0644 | IPC_CREAT))==-1)
     {
@@ -481,13 +442,13 @@ int* createCustomersReadCounter(int* segmentId)
     }
     else
     {
-        if ((customersReadCounter = (int*)shmat (*segmentId,0,0)) == (void*)-1){
+        if ((OrderReadCounter = (int*)shmat (*segmentId,0,0)) == (void*)-1){
             cerr << "Shared memory attach failed\n";
             return NULL;
         }
     }
-    (*customersReadCounter) = 0;
-    return customersReadCounter;
+    (*OrderReadCounter) = 0;
+    return OrderReadCounter;
 }
 
 /* function createOrdersCounter: creates shared memory for orders array index
@@ -532,7 +493,7 @@ void printPrompt(double simTime, int nItems, int nCustomers, int nWaiters, Item*
 /* function customerActions: simulate customer actions
     customer reads from menu and orders
 */
-void customerActions(int i,Item* items, int nItems, Order* orders,int* ordersCounter, int *customersReadCounter, int *ItemsReadCounter,
+void customerActions(int i,Item* items, int nItems, Order* orders,int* ordersCounter, int *OrderReadCounter, int *ItemsReadCounter,
 chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> start)
 {
 
@@ -540,7 +501,6 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
     int CONVERT_TO_MILLISECONDS = (int)(nearest * 1000);
 
     this_thread::sleep_for(chrono::milliseconds( CONVERT_TO_MILLISECONDS ));
-    // sleep( float_rand(CUSTOMER_SLEEP_MIN, CUSTOMER_SLEEP_MAX));
     
     // ITEM READER ENTER
     p(semid_ServiceQueueItems);
@@ -563,9 +523,9 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
     // ORDER READER ENTER 
     p(semid_ServiceQueueOrder);
     p(semid_ReadCountAccessOrder);
-    if ((*customersReadCounter) == 0)
+    if ((*OrderReadCounter) == 0)
         p(semid_ResourceAccessOrder);
-    (*customersReadCounter)++;
+    (*OrderReadCounter)++;
     v(semid_ServiceQueueOrder);
     v(semid_ReadCountAccessOrder);
 
@@ -573,8 +533,8 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
     if(*ordersCounter==0){
         //ORDER READER EXIT
         p(semid_ReadCountAccessOrder);
-        (*customersReadCounter)--;
-        if ((*customersReadCounter) == 0)
+        (*OrderReadCounter)--;
+        if ((*OrderReadCounter) == 0)
             v(semid_ResourceAccessOrder);
             v(semid_ReadCountAccessOrder);
 
@@ -618,8 +578,8 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
     else if(orders[(*ordersCounter)-1].isDone()){
         //ORDER READER EXIT
         p(semid_ReadCountAccessOrder);
-        (*customersReadCounter)--;
-        if ((*customersReadCounter) == 0)
+        (*OrderReadCounter)--;
+        if ((*OrderReadCounter) == 0)
             v(semid_ResourceAccessOrder);
         v(semid_ReadCountAccessOrder);
 
@@ -662,8 +622,8 @@ chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds> sta
     else{
         // ORDER READER EXIT
         p(semid_ReadCountAccessOrder);
-        (*customersReadCounter)--;
-        if ((*customersReadCounter) == 0)
+        (*OrderReadCounter)--;
+        if ((*OrderReadCounter) == 0)
             v(semid_ResourceAccessOrder);
             v(semid_ReadCountAccessOrder);
     }
@@ -680,7 +640,6 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
     int CONVERT_TO_MILLISECONDS = (int)(nearest * 1000);
 
     this_thread::sleep_for(chrono::milliseconds( CONVERT_TO_MILLISECONDS ));
-    // sleep(CONVERT_TO_MILLISECONDS * float_rand(WAITER_SLEEP_MIN, WAITER_SLEEP_MAX));
 
     // if any orders exist
     if(*ordersCounter>0)
@@ -728,7 +687,7 @@ std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::nanoseconds
     while sim time not ended, customers() and waiters() read\write from memory
 */
 void ManagerProcess(double simTime, Item* items, int nItems, Order* orders, 
-    int *ordersCounter, int nCustomers, int nWaiters, int *ItemsReadCounter, int *customersReadCounter){
+    int *ordersCounter, int nCustomers, int nWaiters, int *ItemsReadCounter, int *OrderReadCounter){
     
     auto start = chrono::high_resolution_clock::now();
     pid_t childpid;
@@ -761,7 +720,7 @@ void ManagerProcess(double simTime, Item* items, int nItems, Order* orders,
             << " PPID " << getppid() << "\n";
             v(semid_outputSemaphore);
             while(simTime >= chrono::duration<double, milli>(chrono::high_resolution_clock::now()-start).count()/1000){
-                customerActions(i,items,nItems,orders,ordersCounter, customersReadCounter, ItemsReadCounter ,start);
+                customerActions(i,items,nItems,orders,ordersCounter, OrderReadCounter, ItemsReadCounter ,start);
             
             }
             p(semid_outputSemaphore);
@@ -819,7 +778,7 @@ void catchKill(int sig){
 int main(int argc, char* argv[]){
     
     int nItems, nCustomers, nWaiters, status, *ordersCounter,
-         *ItemsReadCounter, *customersReadCounter;
+         *ItemsReadCounter, *OrderReadCounter;
     double simTime;
     Item* items;
     Order* orders;
@@ -864,8 +823,8 @@ int main(int argc, char* argv[]){
         return 1;
     }
     
-    customersReadCounter = createCustomersReadCounter(&segmentId_customerCounter);
-    if (customersReadCounter == NULL){
+    OrderReadCounter = createOrderReadCounter(&segmentId_OrderReadCounter);
+    if (OrderReadCounter == NULL){
         cerr << "error creating customers read counter\n";
         return 1;
     }
@@ -874,7 +833,7 @@ int main(int argc, char* argv[]){
     printPrompt(simTime, nItems, nCustomers, nWaiters, items);
     
     ManagerProcess(simTime, items, nItems, orders, ordersCounter, nCustomers, nWaiters, 
-        ItemsReadCounter, customersReadCounter );
+        ItemsReadCounter, OrderReadCounter );
 
     printItemsList(items, nItems);
     cout << "=================================\n";

@@ -42,6 +42,26 @@
                     "ignoreFailures": true
                 }
             ]
+        },
+        {
+            "name": "(gdb) Launch ex5",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/assignments/ex5/bin/ex5",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/assignments/ex5/bin",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
         }
+        
     ]
 }

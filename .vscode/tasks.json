@@ -26,5 +26,18 @@
                 "isDefault": true
             }
         }
+        ,
+        {
+            "label": "build OSex5",
+            "type": "shell",
+            "command": "g++ -o ./assignments/ex5/bin/ex5 ./assignments/ex5/*.cpp -std=c++11 -Wall -Wno-vla -pedantic -march=core2 -pipe -fstack-protector-all -g -Wl,-O,1,-z,combreloc",
+            "args": [
+                
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
     ]
 }

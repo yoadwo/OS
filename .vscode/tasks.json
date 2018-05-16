@@ -5,39 +5,29 @@
             "label": "build OSex2",
             "type": "shell",
             "command": "g++ -o ./assignments/ex2/bin/shell ./assignments/ex2/*.cpp -std=c++11 -Wall -Wno-vla -pedantic -march=core2 -pipe -fstack-protector-all -g -Wl,-O,1,-z,combreloc",
-            "args": [
-                
-            ],
-            "group": 
-                "build"
-                
-            
-        }
-        ,
+            "args": [],
+            "group": "build"
+        },
         {
             "label": "build OSex3",
             "type": "shell",
             "command": "g++ -o ./assignments/ex3/bin/ex3 ./assignments/ex3/*.cpp -std=c++11 -Wall -Wno-vla -pedantic -march=core2 -pipe -fstack-protector-all -g -Wl,-O,1,-z,combreloc",
-            "args": [
-                
-            ],
+            "args": [],
             "group": {
                 "kind": "build",
                 "isDefault": true
             }
-        }
-        ,
+        },
         {
             "label": "build OSex5",
             "type": "shell",
-            "command": "g++ -o ./assignments/ex5/bin/ex5 ./assignments/ex5/*.cpp -std=c++11 -Wall -Wno-vla -pedantic -march=core2 -pipe -fstack-protector-all -g -Wl,-O,1,-z,combreloc",
-            "args": [
-                
-            ],
+            "command": "g++ ./assignments/ex5/*.cpp -o ./assignments/ex5/bin/ex5 -std=c++11 -pthread -Wall -Wno-vla -pedantic -march=core2 -pipe -fstack-protector-all -g  -Wl,-O,1,-z,combreloc",
+            "args": [],
             "group": {
                 "kind": "build",
                 "isDefault": true
-            }
+            },
+            "problemMatcher": []
         }
     ]
 }

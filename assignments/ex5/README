@@ -1,6 +1,2 @@
 Yoad Wolfsthal 302184379
 Michael Moskvitin 321182669
-
-Please Note: Due to C++'s own rand() implementation, some dishes are being chosen twice.
-Therefore the final calculation will seem off when trying to sum only by name.
-So please note they are different objects and summation is correct.

@@ -36,8 +36,9 @@ void SafeQueue::pushTask(Task* task)
     }
     else
     {
-        Task** temp = new Task*[queueActualSize];
-        for (int i=0; i<queueActualSize; i++)
+        
+        Task **temp = new Task *[queueActualSize];
+        for (int i = 0; i < queueActualSize; i++)
         {
             temp[i] = queue[i];
         }

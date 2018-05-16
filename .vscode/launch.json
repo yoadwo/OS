@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "(gdb) Launch ex2",
             "type": "cppdbg",
@@ -47,10 +48,10 @@
             "name": "(gdb) Launch ex5",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/assignments/ex5/bin/ex5",
-            "args": [],
+            "program": "${workspaceFolder}/assignments/ex5/task2/bin/ex5",
+            "args": ["names1.txt", "names2.txt", "names3.txt", "output.txt"],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/assignments/ex5/bin",
+            "cwd": "${workspaceFolder}/assignments/ex5/task2",
             "environment": [],
             "externalConsole": true,
             "MIMode": "gdb",

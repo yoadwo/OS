@@ -1,6 +1,7 @@
 #include "threadpool.hpp"
 #include <pthread.h>
 
+
 #define DEFAULT_QUEUE_SIZE 5
 
 WorkerThread::WorkerThread(){}
@@ -36,10 +37,16 @@ void WorkerThread::RunTask()
     }
 }
 
-ThreadPool::ThreadPool(int poolsize, bool bLinger):
+/*
+    ThreadPool c-tor: init pool as array of threads
+        each thread then points to the pool itself
+*/
+ThreadPool::ThreadPool(int poolsize, string poolType, bool bLinger):
         m_pool_size(poolsize),
-        m_bRunning(false),
-        m_bLinger(bLinger)
+        m_poolType(poolType),
+        m_bLinger(bLinger),
+        m_bRunning(false)
+
 {
     if (m_pool_size > 0){
         m_thread_pool = new WorkerThread[m_pool_size];
@@ -47,6 +54,8 @@ ThreadPool::ThreadPool(int poolsize, bool bLinger):
     for (int i = 0; i < m_pool_size; ++i){
         m_thread_pool[i].SetThreadPool(this);
     }
+    // init tasks queue
+    m_task_queue = new SafeQueue(DEFAULT_QUEUE_SIZE);
 }
 
 ThreadPool::~ThreadPool()
@@ -62,48 +71,49 @@ ThreadPool::~ThreadPool()
 void ThreadPool::PushTask(Task* pTask)
 {
         m_task_queue->pushTask(pTask);
-//     m_notifier.Lock();
+/*     m_notifier.Lock();
 
-//     if (m_bRunning){
-//         m_task_queue.push(pTask);
-//         m_notifier.Notify();
-//     }else{
-//         cout<<"Pool has been stopped! Could not add new task ..."<<endl;
-//     }
+    if (m_bRunning){
+        m_task_queue.push(pTask);
+        m_notifier.Notify();
+    }else{
+        cout<<"Pool has been stopped! Could not add new task ..."<<endl;
+    }
 
-//     m_notifier.Unlock();
+    m_notifier.Unlock(); */
 }
 
 Task* ThreadPool::PopTask()
 {
     return m_task_queue->popTask();
-    // m_notifier.Lock();
+/*  m_notifier.Lock();
 
-    // Task* pTaskRet = NULL;
+    Task* pTaskRet = NULL;
 
-    // if (m_bLinger)
-    // {
-    //     while(m_bRunning && m_task_queue.empty()){
-    //         m_notifier.Wait();
-    //     }
-    //     if (!m_task_queue.empty()){
-    //         pTaskRet = m_task_queue.front();
-    //         m_task_queue.pop();
-    //     }
-    // }
-    // else
-    // {
-    //     while (m_bRunning && m_task_queue.empty()){
-    //         m_notifier.Wait();
-    //     }    
+    if (m_bLinger)
+    {
+        while(m_bRunning && m_task_queue.empty()){
+            m_notifier.Wait();
+        }
+        if (!m_task_queue.empty()){
+            pTaskRet = m_task_queue.front();
+            m_task_queue.pop();
+        }
+    }
+    else
+    {
+        while (m_bRunning && m_task_queue.empty()){
+            m_notifier.Wait();
+        }    
 
-    //     if (m_bRunning){
-    //         pTaskRet = m_task_queue.front();
-    //         m_task_queue.pop(); 
-    //     }
-    // }
-    // m_notifier.Unlock();
-    // return pTaskRet;
+        if (m_bRunning){
+            pTaskRet = m_task_queue.front();
+            m_task_queue.pop(); 
+        }
+    }
+    m_notifier.Unlock();
+    return pTaskRet;
+    */
 }
 
 pthread_t ThreadPool::GetThreadId(int idx)
@@ -112,6 +122,9 @@ pthread_t ThreadPool::GetThreadId(int idx)
     return m_thread_pool[idx].GetThreadId();
 }
 
+/* PoolStart(): call "start thread" on each thread, which itself calls to thread_create
+
+*/
 void ThreadPool::PoolStart()
 {
     if (!m_bRunning){
@@ -119,7 +132,6 @@ void ThreadPool::PoolStart()
         for (int i = 0; i < m_pool_size; ++i){
             m_thread_pool[i].StartThread(i+1);
         }
-        m_task_queue = new SafeQueue(DEFAULT_QUEUE_SIZE);
         cout<<"thread pool started ..."<<endl;
     }else{
         cout<<"thread pool already started ..."<<endl;

@@ -37,6 +37,7 @@ void SafeQueue::pushTask(Task *task)
     }
     else
     {
+        
         Task **temp = new Task *[queueActualSize];
         for (int i = 0; i < queueActualSize; i++)
         {

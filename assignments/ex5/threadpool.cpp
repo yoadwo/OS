@@ -1,4 +1,4 @@
-#include "threadpool.h"
+#include "threadpool.hpp"
 #include <pthread.h>
 
 #define DEFAULT_QUEUE_SIZE 5

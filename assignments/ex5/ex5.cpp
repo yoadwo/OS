@@ -1,17 +1,13 @@
 #include <stdio.h>
 #include <pthread.h>
-#include "ThreadPool.hpp"
 
-
-
-#include "threadpool.h"
 #include <iostream>
 #include <sstream>
 #include <string> 
 #include <thread>
 #include <cstdlib>
 
-#include "threadpool.h"
+#include "threadpool.hpp"
 
 using namespace std;
 

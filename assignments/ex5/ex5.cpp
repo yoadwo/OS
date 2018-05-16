@@ -1,3 +1,10 @@
+#include <stdio.h>
+#include <pthread.h>
+#include "ThreadPool.hpp"
+
+
+
+#include "threadpool.h"
 #include <iostream>
 #include <sstream>
 #include <string> 
@@ -36,3 +43,4 @@ int main(){
     getchar();
     return 0;
 }
+

@@ -8,3 +8,7 @@ assignments/ex3/bin/ex3
 assignments/ex3/oldschool\.cpp
 
 assignments/ex5 4year impl/
+
+assignments/ex5/ThreadPool\.cpp
+
+assignments/ex5/ThreadPool\.hpp

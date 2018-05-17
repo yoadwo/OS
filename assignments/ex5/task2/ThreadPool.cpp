@@ -55,7 +55,7 @@ ThreadPool::ThreadPool(int poolsize, bool bLinger):
         m_thread_pool[i].SetThreadPool(this);
     }
     // init tasks queue
-    m_task_queue = new SafeQueue(DEFAULT_QUEUE_SIZE);
+    //m_task_queue = new SafeQueue(DEFAULT_QUEUE_SIZE);
 }
 
 ThreadPool::~ThreadPool()

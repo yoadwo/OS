@@ -3,7 +3,7 @@
 
 #include <fstream>
 #include "ThreadPool.hpp"
-
+#include "FileTask.hpp"
 class RequesterPool: public ThreadPool
 {
     private:

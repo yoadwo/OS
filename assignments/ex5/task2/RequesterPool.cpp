@@ -13,7 +13,7 @@ RequesterPool:: RequesterPool(int poolsize, fstream *inputFiles[], bool bLinger)
         }
     }
 
-}
+
 
 RequesterPool::~RequesterPool(){}
 

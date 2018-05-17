@@ -3,7 +3,7 @@
 
 #include <fstream>
 #include "ThreadPool.hpp"
-
+#include "FileTask.hpp"
 class RequesterPool: public ThreadPool
 {
     private:
@@ -14,7 +14,7 @@ class RequesterPool: public ThreadPool
     public:
         RequesterPool(int poolsize, fstream *inputFiles[], bool bLinger);
         ~RequesterPool();
-        void RequesterPool::PoolStart();
+        void PoolStart();
 };
 
 #endif

@@ -14,7 +14,7 @@ class RequesterPool: public ThreadPool
     public:
         RequesterPool(int poolsize, fstream *inputFiles[], bool bLinger);
         ~RequesterPool();
-        void RequesterPool::PoolStart();
+        void PoolStart();
 };
 
 #endif

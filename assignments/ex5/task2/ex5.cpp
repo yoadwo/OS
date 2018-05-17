@@ -14,30 +14,30 @@
 
 using namespace std;
 
-bool openFiles(ifstream *input, ofstream *output, int argc, char* argv[]){
+bool openFiles(fstream *input[], fstream **output, int argc, char* argv[]){
     int i;
     for (i=1; i < argc -1; i++){
         cout << "open file " << argv[i] << "\n";
-        input[i-1].open(argv[i]);
-        if (!input[i-1].is_open()){
+        input[i-1]->open(argv[i]);
+        if (!input[i-1]->is_open()){
             cerr << "File open Error: " << argv[i] << "\n";
             return false;
         }
     }
-    (*output).open(argv[i]);
-    if (!(*output).is_open()){
+    (*output)->open(argv[i]);
+    if (!(*output)->is_open()){
         cerr << "File open Error: " << argv[i] << "\n";
         return false;
     }
     return true;
 }
 
-void closeFiles(ifstream *input, ofstream *output, int argc ){
+void closeFiles(fstream *input[], fstream *output, int argc ){
     int i;
     for (i=1; i< argc -1; i++){
-        input[i-1].close();
+        input[i-1]->close();
     }
-    (*output).close();
+    output->close();
 }
 
 int main(int argc, char* argv[]){
@@ -45,8 +45,8 @@ int main(int argc, char* argv[]){
     srand (time(NULL));
 
     int nReqThreads = argc -2;
-    ifstream inputFiles[nReqThreads];
-    ofstream output;
+    fstream *inputFiles[nReqThreads];
+    fstream *output;   
     string line;
     
 
@@ -63,12 +63,9 @@ int main(int argc, char* argv[]){
 
     RequesterPool *pPoolRequester = new RequesterPool(nReqThreads, inputFiles, true);
     pPoolRequester->PoolStart();
-    for (int i = 0; i < 30; ++i){
-        DemoTask *demo = new DemoTask(new int(i+1));    
-        pPoolRequester->PushTask(demo);
-    }
     
-    closeFiles(inputFiles, &output, argc);
+    
+    closeFiles(inputFiles, output, argc);
     pPoolRequester->PoolStop();
     pthread_mutex_destroy(&m_screenMutex);
 

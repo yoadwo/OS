@@ -4,6 +4,7 @@
         "cctype": "cpp",
         "clocale": "cpp",
         "cstdint": "cpp",
+        "fstream":"cpp",
         "cstdio": "cpp",
         "cstdlib": "cpp",
         "cwchar": "cpp",

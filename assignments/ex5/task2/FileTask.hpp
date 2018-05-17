@@ -1,6 +1,6 @@
 #ifndef FileTask_hpp
 #define FileTask_hpp
-
+#include <ifstream>
 #include <fstream>
 #include "Task.hpp"
 

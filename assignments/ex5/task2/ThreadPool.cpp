@@ -1,4 +1,4 @@
-#include "threadpool.hpp"
+#include "ThreadPool.hpp"
 #include <pthread.h>
 
 
@@ -41,9 +41,9 @@ void WorkerThread::RunTask()
     ThreadPool c-tor: init pool as array of threads
         each thread then points to the pool itself
 */
-ThreadPool::ThreadPool(int poolsize, string poolType, bool bLinger):
+ThreadPool::ThreadPool(int poolsize, bool bLinger):
         m_pool_size(poolsize),
-        m_poolType(poolType),
+        //m_poolType(poolType),
         m_bLinger(bLinger),
         m_bRunning(false)
 

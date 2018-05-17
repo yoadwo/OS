@@ -70,7 +70,7 @@ class WorkerThread
 class ThreadPool
 {
   public:
-    ThreadPool(int poolsize,string poolType, bool bLinger = false );
+    ThreadPool(int poolsize, bool bLinger = false );
     ~ThreadPool();
     int GetPoolSize() { return m_pool_size; }
     void PushTask(Task *task);
@@ -82,7 +82,7 @@ class ThreadPool
   private:
     SafeQueue       *m_task_queue;
     int             m_pool_size;
-    string          m_poolType;
+    //string          m_poolType;
     WorkerThread    *m_thread_pool;
     TaskNotify      m_notifier;     
     /*

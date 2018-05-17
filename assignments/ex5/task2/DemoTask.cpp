@@ -8,11 +8,11 @@ using namespace std;
 class DemoTask : public Task
 {
 public:
-    DemoTask(void* param):Task(param){}
+    DemoTask(int id):Task(id){}
     ~DemoTask(){}
     void Run(){
         usleep(rand() % 1000);
-        cout<<"Thread #"<<pthread_self()<<" execute task "<<*(int*)m_param<<endl;
+        cout<<"Thread #"<<pthread_self()<<" execute task "<<id <<endl;
         
     }
 };

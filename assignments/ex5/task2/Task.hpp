@@ -5,11 +5,11 @@
 class Task
 {
 public:
-    Task(void* param):m_param(param){}
+    Task(int id):m_id(id){}
     virtual ~Task(){}
     virtual void Run() = 0;
 protected:
-    void* m_param;
+    int m_id;
 };
 
 #endif

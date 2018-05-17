@@ -9,7 +9,7 @@
 #include <thread>
 #include <cstdlib>
 
-#include "threadpool.hpp"
+#include "RequesterPool.hpp"
 #include "DemoTask.cpp"
 
 using namespace std;
@@ -18,7 +18,7 @@ bool openFiles(ifstream *input, ofstream *output, int argc, char* argv[]){
     int i;
     for (i=1; i < argc -1; i++){
         cout << "open file " << argv[i] << "\n";
-        input[i-1].open(argv[i], ios::in);
+        input[i-1].open(argv[i]);
         if (!input[i-1].is_open()){
             cerr << "File open Error: " << argv[i] << "\n";
             return false;
@@ -44,9 +44,11 @@ int main(int argc, char* argv[]){
     cout << "hello task ex5\n";
     srand (time(NULL));
 
-    ifstream inputFiles[argc-2];
+    int nReqThreads = argc -2;
+    ifstream inputFiles[nReqThreads];
     ofstream output;
     string line;
+    
 
     if (!openFiles(inputFiles, &output, argc, argv)){
         cerr << "File Error.. Exiting.\n";
@@ -59,7 +61,7 @@ int main(int argc, char* argv[]){
     pthread_mutex_init(&m_screenMutex, NULL);
 
 
-    ThreadPool *pPoolRequester = new ThreadPool(2, "REQUESTER", true);
+    RequesterPool *pPoolRequester = new RequesterPool(nReqThreads, inputFiles, true);
     pPoolRequester->PoolStart();
     for (int i = 0; i < 30; ++i){
         DemoTask *demo = new DemoTask(new int(i+1));    

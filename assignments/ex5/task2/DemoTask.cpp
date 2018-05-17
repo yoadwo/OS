@@ -12,7 +12,7 @@ public:
     ~DemoTask(){}
     void Run(){
         usleep(rand() % 1000);
-        cout<<"Thread #"<<pthread_self()<<" execute task "<<id <<endl;
+        cout<<"Thread #"<<pthread_self()<<" execute task "<< m_id <<endl;
         
     }
 };

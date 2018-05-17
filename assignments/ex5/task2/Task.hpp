@@ -2,6 +2,8 @@
 #ifndef _TASK_
 #define _TASK_
 
+using namespace std;
+
 class Task
 {
 public:

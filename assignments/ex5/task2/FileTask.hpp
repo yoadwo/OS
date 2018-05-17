@@ -7,9 +7,12 @@
 class FileTask: public Task
 {
     private:
-        ifstream *m_File;
+        fstream    *m_File;
     public:
-        RequesterPool(int poolsize, ifstream *inputFiles, bool bLinger);
+        FileTask(int id, fstream *file);
+        ~FileTask();
+        void Run();
+
 };
 
 #endif

@@ -7,9 +7,9 @@
 class RequesterPool: public ThreadPool
 {
     private:
-        ifstream *m_inputFiles;
+        fstream **m_inputFiles;
     public:
-        RequesterPool(int poolsize, ifstream *inputFiles, bool bLinger);
+        RequesterPool(int poolsize, fstream *inputFiles[], bool bLinger);
 };
 
 #endif

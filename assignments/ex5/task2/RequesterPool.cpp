@@ -15,8 +15,6 @@ RequesterPool::~RequesterPool(){}
 
 
 void RequesterPool::PoolStart(){    
-    //ThreadPool::PoolStart();
-    // for (int i=0; i< poolsize; i++){
-    //     DemoTask *demo = new DemoTask(new int(i+1));     
-    // }
+    ThreadPool::PoolStart();
+    
 }     

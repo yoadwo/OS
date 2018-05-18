@@ -5,6 +5,7 @@ RequesterPool:: RequesterPool(int poolsize, fstream *inputFiles[], bool bLinger)
         
         file_task_queue=new SafeQueue();
         dns_task_queue=new SafeQueue();
+
         for(int i=0;i<num_of_files;i++){
             file_task_queue->pushTask(new FileTask(i,inputFiles[i]));
         }

@@ -60,8 +60,9 @@ int main(int argc, char* argv[]){
     pthread_mutex_t m_screenMutex;
     pthread_mutex_init(&m_screenMutex, NULL);
 
-
+    // init request threads, push file tasks to files queue
     RequesterPool *pPoolRequester = new RequesterPool(nReqThreads, inputFiles, true);
+    // pop file tasks, read files and push as dns tasks to dns queue
     pPoolRequester->PoolStart();
     
     

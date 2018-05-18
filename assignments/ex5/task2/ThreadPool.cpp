@@ -29,12 +29,14 @@ void WorkerThread::RunTask()
 {
     while (true)
     {
+        //TODO: google "variable lookup c++ inheritence"
         Task* pTask = m_thread_pool->PopTask();
         if (!pTask)
             break;
         //cout<<"Thread "<<m_idx<<" Running Task "<<endl;
         pTask->Run();
     }
+    pthread_exit(NULL);
 }
 
 /*

@@ -11,6 +11,8 @@ class RequesterPool: public ThreadPool
         int   num_of_files;
         SafeQueue  *file_task_queue;
         SafeQueue   *dns_task_queue;
+        //TODO: verify inheritance
+        SafeQueue   *m_task_queue;
     public:
         RequesterPool(int poolsize, fstream *inputFiles[], bool bLinger);
         ~RequesterPool();

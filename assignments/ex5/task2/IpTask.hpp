@@ -1,15 +1,18 @@
 #ifndef IpTask_hpp
 #define IpTask_hpp
 
-#include <fstream>
 #include "Task.hpp"
-#include <map>
+
+#include <fstream>
+#include <vector>
+#include <unordered_map>
+
 
 class IpTask: public Task
 {
     private:
         char*    m_Name;
-       unordered_map<string,char* ip> dns_ip_array;
+        unordered_map <string,char*> dns_ip_array;
     public:
         IpTask(char* name,unordered_map<string,vector <char*>> array);
         ~IpTask();

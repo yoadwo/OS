@@ -1,7 +1,6 @@
 #include "IpTask.hpp"
 
 
-
 IpTask::IpTask(name,array):m_Name(name),dns_ip_array(array){
 
 }  

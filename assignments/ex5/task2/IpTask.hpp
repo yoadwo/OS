@@ -19,7 +19,7 @@
 #include <iostream>
 extern "C"
 {
-	#include "util.hpp"
+	#include "util.h"
 }
 
 using namespace std;

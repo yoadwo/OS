@@ -11,11 +11,12 @@
 #include <vector>
 
 #include "RequesterPool.hpp"
-#include "DemoTask.cpp"
+#include "ResolverPool.hpp"
+
 
 using namespace std;
 
-bool openFiles(fstream **input[], fstream **output, int argc, char* argv[]){
+/* bool openFiles(fstream **input[], fstream **output, int argc, char* argv[]){
     int i;
     for (i=1; i < argc -1; i++){
         cout << "open file " << argv[i] << "\n";
@@ -31,7 +32,7 @@ bool openFiles(fstream **input[], fstream **output, int argc, char* argv[]){
         return false;
     }
     return true;
-}
+} */
 
 
 /* void closeFiles(vector <fstream*> input, fstream *output, int argc ){
@@ -46,15 +47,25 @@ int main(int argc, char* argv[]){
     cout << "hello task ex5\n";
     srand (time(NULL));
 
-    int nReqThreads = argc -2;
+    int nRequesterThreads = argc -2, nResolverThreads = 2;
 
     pthread_mutex_t m_screenMutex;
     pthread_mutex_init(&m_screenMutex, NULL);
 
-    // init request threads, push file tasks to files queue
-    RequesterPool *pPoolRequester = new RequesterPool(nReqThreads, argc, argv, true);
+    // init resolver threads
+    ResolverPool *pPoolResolver = new ResolverPool(nResolverThreads, argv[argc-1], true);
+    if (!pPoolResolver->isOutputOpen()){
+        cerr << "Failed to open Output file, Exiting.\n";
+        pPoolResolver->~ResolverPool();
+        return 1;
+    }
+    // init request threads
+    RequesterPool *pPoolRequester = new RequesterPool(nRequesterThreads, argc, argv, true);
+    // push file tasks to files queue
+    pPoolRequester->PushTasks(pPoolResolver->getTaskQueue());
     // pop file tasks, read files and push as dns tasks to dns queue
     pPoolRequester->PoolStart();
+    pPoolResolver->PoolStart();
     
     
     //closeFiles(inputFiles, output, argc);

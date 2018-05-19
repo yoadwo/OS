@@ -3,16 +3,20 @@
 
 #include "ThreadPool.hpp"
 
+#include <fstream>
+
 class ResolverPool: public ThreadPool
 {
     private:
         SafeQueue   *dns_task_queue;
         unordered_map<string,char* ip> dns_ip_array;
-    public :
-        ResolverPool(SafeQueue *dns_requester_queue);
+        ofstream m_OutputFile;
 
-        void startPool();
-
+    public:
+        ResolverPool(int poolsize, char *output, bool bLinger);
+        ~ResolverPool();
+        SafeQueue*  getTaskQueue();
+        bool isOutputOpen();
 };
 
 #endif

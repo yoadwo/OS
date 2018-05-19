@@ -15,7 +15,7 @@ class RequesterPool: public ThreadPool
         //SafeQueue   *m_task_queue;
     public:
         RequesterPool(int poolsize, int argc, char* argv[], bool bLinger);
-        void PushTasks();
+        void PushTasks(SafeQueue *resolverQueue);
         ~RequesterPool();
         
 };

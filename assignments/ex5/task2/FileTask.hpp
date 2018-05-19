@@ -7,11 +7,12 @@
 class FileTask: public Task
 {
     private:
-        fstream    *m_File;
+        char    *m_FileName;
     public:
-        FileTask(int id, fstream *file);
+        FileTask(int id, char *file);
         ~FileTask();
-        void Run();
+        bool Run();
+        char* getName();
 
 };
 

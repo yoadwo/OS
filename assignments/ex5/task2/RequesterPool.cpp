@@ -1,22 +1,26 @@
 #include "RequesterPool.hpp"
 
-RequesterPool:: RequesterPool(int poolsize, fstream *inputFiles[], bool bLinger):
-    ThreadPool(poolsize, bLinger),m_inputFiles(inputFiles),num_of_files(poolsize){
+RequesterPool:: RequesterPool(int poolsize, int argc, char* argv[], bool bLinger):
+    ThreadPool(poolsize, bLinger),num_of_files(poolsize){
         
-        file_task_queue=new SafeQueue();
+        for (int i=1; i< argc -1; i++){
+            m_inputFiles.push_back(argv[i]);
+        }
+        /* file_task_queue=new SafeQueue();
         dns_task_queue=new SafeQueue();
 
         for(int i=0;i<num_of_files;i++){
             file_task_queue->pushTask(new FileTask(i,inputFiles[i]));
-        }
+        } */
+        
     }
+
+void RequesterPool:: PushTasks(){
+    for(int i=0;i<num_of_files;i++){
+        m_task_queue->pushTask(new FileTask(i,m_inputFiles[i]));
+    }
+}
 
 RequesterPool::~RequesterPool(){}
 
-
-void RequesterPool::PoolStart(){    
-    //ThreadPool::PoolStart();
-    // for (int i=0; i< poolsize; i++){
-    //     DemoTask *demo = new DemoTask(new int(i+1));     
-    // }
-}     
+  

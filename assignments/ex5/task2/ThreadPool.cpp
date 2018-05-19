@@ -4,16 +4,22 @@
 
 #define DEFAULT_QUEUE_SIZE 5
 
-WorkerThread::WorkerThread(){}
-WorkerThread::~WorkerThread(){}
+WorkerThread::WorkerThread(){
+    pthread_mutex_init(&m_workerScreenMutex, NULL);
+}
+WorkerThread::~WorkerThread(){
+    pthread_mutex_destroy(&m_workerScreenMutex);
+}
 
 void WorkerThread::StartThread(int idx)
 {
     pthread_create(&m_thread_id,NULL,ThreadProc,this);
     // we do not want them detached
-    //pthread_detach(m_thread_id);
+    // pthread_detach(m_thread_id);
     m_idx = idx;
+    pthread_mutex_lock(&m_workerScreenMutex);
     cout << "thread " <<idx <<" is active\n";
+    pthread_mutex_unlock(&m_workerScreenMutex);
 }
 
 void* WorkerThread::ThreadProc(void* arg)
@@ -22,7 +28,7 @@ void* WorkerThread::ThreadProc(void* arg)
     if (pWorker){
         pWorker->RunTask();
     }
-    return NULL;
+    pthread_exit(NULL);
 }
 
 void WorkerThread::RunTask()
@@ -33,10 +39,16 @@ void WorkerThread::RunTask()
         Task* pTask = m_thread_pool->PopTask();
         if (!pTask)
             break;
-        //cout<<"Thread "<<m_idx<<" Running Task "<<endl;
-        pTask->Run();
+        pthread_mutex_lock(&m_workerScreenMutex);
+        cout<<"Thread "<<m_idx<<" Running Task "<<endl;
+        pthread_mutex_unlock(&m_workerScreenMutex);
+        if (!pTask->Run()){
+            pthread_mutex_lock(&m_workerScreenMutex);
+            cout << "Task failed, returning task " << pTask->getID() <<" back to queue";
+            m_thread_pool->PushTask(pTask);
+
+        }
     }
-    pthread_exit(NULL);
 }
 
 /*
@@ -56,8 +68,8 @@ ThreadPool::ThreadPool(int poolsize, bool bLinger):
     for (int i = 0; i < m_pool_size; ++i){
         m_thread_pool[i].SetThreadPool(this);
     }
-    // init tasks queue
-    //m_task_queue = new SafeQueue(DEFAULT_QUEUE_SIZE);
+    // arbitrarily init tasks queue with same size of pool
+    m_task_queue = new SafeQueue(poolsize);
 }
 
 ThreadPool::~ThreadPool()
@@ -67,6 +79,35 @@ ThreadPool::~ThreadPool()
     while(!m_task_queue->isEmpty()){
         Task* pTask = m_task_queue->popTask();
         delete pTask;
+    }
+}
+
+/* PoolStart(): call "start thread" on each thread
+    poolStart -> m_pool[i] -> threadStart -> create(threadProc)
+    -> runTask() -> task.run()
+*/
+void ThreadPool::PoolStart()
+{
+    if (!m_bRunning){
+        m_bRunning = true;
+        for (int i = 0; i < m_pool_size; ++i){
+            m_thread_pool[i].StartThread(i+1);
+        }
+        cout<<"all threads have been started ..."<<endl;
+    }else{
+        cout<<"thread pool already started ..."<<endl;
+    }
+}
+
+void ThreadPool::PoolStop()
+{
+    if (m_bRunning){
+        m_bRunning = false;
+        m_notifier.NotifiAll();
+        Join();
+        cout<<"thread pool is stopping......."<<endl;
+    }else{
+        cout<<"thread pool already stopped ......."<<endl;
     }
 }
 
@@ -124,33 +165,6 @@ pthread_t ThreadPool::GetThreadId(int idx)
     return m_thread_pool[idx].GetThreadId();
 }
 
-/* PoolStart(): call "start thread" on each thread, which itself calls to thread_create
-
-*/
-void ThreadPool::PoolStart()
-{
-    if (!m_bRunning){
-        m_bRunning = true;
-        for (int i = 0; i < m_pool_size; ++i){
-            m_thread_pool[i].StartThread(i+1);
-        }
-        cout<<"thread pool started ..."<<endl;
-    }else{
-        cout<<"thread pool already started ..."<<endl;
-    }
-}
-
-void ThreadPool::PoolStop()
-{
-    if (m_bRunning){
-        m_bRunning = false;
-        m_notifier.NotifiAll();
-        Join();
-        cout<<"thread pool is stopping......."<<endl;
-    }else{
-        cout<<"thread pool already stopped ......."<<endl;
-    }
-}
 
 void ThreadPool:: Join(){
     for (int i=0; i< m_pool_size; i++)

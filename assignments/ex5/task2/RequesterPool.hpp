@@ -7,16 +7,17 @@
 class RequesterPool: public ThreadPool
 {
     private:
-        fstream **m_inputFiles;
+        vector <char*>  m_inputFiles;
         int   num_of_files;
         SafeQueue  *file_task_queue;
         SafeQueue   *dns_task_queue;
         //TODO: verify inheritance
-        SafeQueue   *m_task_queue;
+        //SafeQueue   *m_task_queue;
     public:
-        RequesterPool(int poolsize, fstream *inputFiles[], bool bLinger);
+        RequesterPool(int poolsize, int argc, char* argv[], bool bLinger);
+        void PushTasks();
         ~RequesterPool();
-        void PoolStart();
+        
 };
 
 #endif

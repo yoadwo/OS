@@ -58,6 +58,7 @@ class WorkerThread
 
   private:
     pthread_t m_thread_id;
+    pthread_mutex_t m_workerScreenMutex;
     unsigned int m_idx;
     /*
     * m_thread_pool stores the pool object. we need the pool object
@@ -79,8 +80,11 @@ class ThreadPool
     void PoolStop();
     pthread_t GetThreadId(int idx);
 
-  private:
+  protected:
     SafeQueue       *m_task_queue;
+
+  private:
+    
     int             m_pool_size;
     //string          m_poolType;
     WorkerThread    *m_thread_pool;

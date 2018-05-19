@@ -12,3 +12,5 @@ assignments/ex5 4year impl/
 assignments/ex5/ThreadPool\.cpp
 
 assignments/ex5/ThreadPool\.hpp
+
+\.vscode/c_cpp_properties\.json

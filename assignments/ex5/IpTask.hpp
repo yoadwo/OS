@@ -11,7 +11,7 @@ class IpTask: public Task
         char*    m_Name;
        unordered_map<string,char* ip> dns_ip_array;
     public:
-        IpTask(char* name,unordered_map<string,char* ip> array);
+        IpTask(char* name,unordered_map<string,vector <char*>> array);
         ~IpTask();
         bool Run();
         //char* getName();

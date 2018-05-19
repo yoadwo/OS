@@ -3,13 +3,14 @@
 
 #include "ThreadPool.hpp"
 
+#include <unordered_map>
 #include <fstream>
 
 class ResolverPool: public ThreadPool
 {
     private:
         SafeQueue   *dns_task_queue;
-        unordered_map<string,char* ip> dns_ip_array;
+        unordered_map<string,vector<char*>> dns_ip_array;
         ofstream m_OutputFile;
 
     public:

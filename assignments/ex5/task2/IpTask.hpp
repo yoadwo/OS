@@ -6,12 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
-
-
-
-
-
 #include <fstream>
 #include "Task.hpp"
 #include <unordered_map>
@@ -27,9 +21,9 @@ class IpTask: public Task
 {
     private:
         char*    m_Name;
-       unordered_map<string,vector<char>> dns_ip_array;
+       unordered_map <string,vector<char*>> dns_ip_array;
     public:
-        IpTask(int id,char* name,unordered_map<string,vector <char>> array);
+        IpTask(int id,char* name,unordered_map<string,vector <char*>> array);
         ~IpTask();
         bool run();
         //char* getName();

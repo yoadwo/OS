@@ -21,7 +21,7 @@
         {
             "label": "build OSex5",
             "type": "shell",
-            "command": "g++ ./assignments/ex5/task2/*.cpp -o ./assignments/ex5/task2/bin/ex5 -std=c++11 -pthread -Wall -Wno-vla -pedantic -march=core2 -pipe -fstack-protector-all -g  -Wl,-O,1,-z,combreloc",
+            "command": "g++ ./assignments/ex5/task2/*.cpp -o ./assignments/ex5/task2/bin/ex5 -std=c++11 -pthread -Wall -Wno-vla -pedantic -march=core2 -pipe -fstack-protector-all -g  -Wl,-O,1,-z,combreloc -lmyutil -L.",
             "args": [],
             "group": {
                 "kind": "build",

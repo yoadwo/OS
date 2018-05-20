@@ -1,4 +1,3 @@
-
 #ifndef UTIL_H
 #define UTIL_H
 
@@ -34,13 +33,3 @@ int dnslookupAll(const char* hostname,
 	      int* addressCount);
 
 #endif
-
-
-
-
-
-
-
-
-
-

@@ -2,9 +2,11 @@
 #ifndef _THREAD_POOL_
 #define _THREAD_POOL_
 
-#include <pthread.h>
+#include <unordered_map>
 #include <queue>
 #include <iostream>
+
+#include <pthread.h>
 #include <assert.h>
 
 #include "SafeQueue.hpp"
@@ -79,12 +81,13 @@ class ThreadPool
     void PoolStart();
     void PoolStop();
     pthread_t GetThreadId(int idx);
+    unordered_map   <string,vector<char*>>* getDns_ip_array();
 
   protected:
     SafeQueue       *m_task_queue;
+    unordered_map <string,vector<char*>> *m_dns_ip_array;
 
   private:
-    
     int             m_pool_size;
     //string          m_poolType;
     WorkerThread    *m_thread_pool;

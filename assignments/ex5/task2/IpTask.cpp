@@ -1,33 +1,30 @@
 #include "IpTask.hpp"
 
 
-IpTask::IpTask(int id,char *name,unordered_map<string,vector <char*>>  array):Task(id),m_Name(name),dns_ip_array(array){
-
+IpTask::IpTask(int id,string name, unordered_map<string,vector <char*>>  *array):
+Task(id),m_Name(name),m_dns_ip_array(array){
 }  
 
 IpTask::~IpTask(){}
 
-bool IpTask::run(){
+bool IpTask::Run(){
     char ipstr[1024];
 
-	/* if(dnslookup(m_Name, ipstr, sizeof(ipstr)) == UTIL_FAILURE)
-	{
-		cout<<"Error"<<endl;
+	if(dnslookup(m_Name.c_str(), ipstr, sizeof(ipstr)) == UTIL_FAILURE){
+		cout<<"DNS lookup error\n";
 		return false;
-	} *//* 
-	else
-	{
-        
-		int length = strlen(ipstr);
-        //dns_ip_array.insert(std::make_pair(m_Name, std::vector<char>()));
-		dns_ip_array[m_Name]=vector<char>();
-        for(int i=0;i<length;i++)
-            dns_ip_array[m_Name].push_back(ipstr[i]);
+	}
 
-		return true;
-        
-	} */
+	// check if item exists
+	unordered_map<string,vector <char*>>::const_iterator got = m_dns_ip_array->find (m_Name);
+	// if not exists, init values container virst
+	if ( got == m_dns_ip_array->end() )
+		(*m_dns_ip_array)[m_Name] = vector<char*>();
+	// if exists, add to value to key
+	else
+		(*m_dns_ip_array)[m_Name].push_back(ipstr);
 	return true;
+    
 }
 
 

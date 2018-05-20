@@ -53,14 +53,14 @@ int main(int argc, char* argv[]){
     pthread_mutex_init(&m_screenMutex, NULL);
 
     // init resolver threads
-    ResolverPool *pPoolResolver = new ResolverPool(nResolverThreads, argv[argc-1], true);
+    ResolverPool *pPoolResolver = new ResolverPool(1, argv[argc-1], true);
     if (!pPoolResolver->isOutputOpen()){
         cerr << "Failed to open Output file, Exiting.\n";
         pPoolResolver->~ResolverPool();
         return 1;
     }
     // init request threads
-    RequesterPool *pPoolRequester = new RequesterPool(nRequesterThreads, argc, argv, true);
+    RequesterPool *pPoolRequester = new RequesterPool(1, argc, argv, true);
     // push file tasks to files queue
     pPoolRequester->PushTasks(pPoolResolver->getTaskQueue());
     // pop file tasks, read files and push as dns tasks to dns queue

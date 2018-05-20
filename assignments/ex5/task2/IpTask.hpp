@@ -21,12 +21,12 @@ using namespace std;
 class IpTask: public Task
 {
     private:
-        char*    m_Name;
-       unordered_map <string,vector<char*>> dns_ip_array;
+        string    m_Name;
+        unordered_map <string,vector<char*>> *m_dns_ip_array;
     public:
-        IpTask(int id,char* name,unordered_map<string,vector <char*>> array);
+        IpTask(int id,string name,unordered_map<string,vector <char*>> *array);
         ~IpTask();
-        bool run();
+        bool Run();
         //char* getName();
 
 };

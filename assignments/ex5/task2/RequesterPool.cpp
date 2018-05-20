@@ -7,6 +7,7 @@ num_of_files(poolsize){
     for (int i = 1; i < argc - 1; i++){
         m_inputFiles.push_back(argv[i]);
     }
+
     /* file_task_queue=new SafeQueue();
     dns_task_queue=new SafeQueue();
 
@@ -17,7 +18,7 @@ num_of_files(poolsize){
 
 void RequesterPool:: PushTasks(SafeQueue *resolverQueue){
     for(int i=0;i<num_of_files;i++){
-        m_task_queue->pushTask(new FileTask(i,m_inputFiles[i],resolverQueue));
+        m_task_queue->pushTask(new FileTask(i,m_inputFiles[i],resolverQueue, m_dns_ip_array));
     }
 }
 

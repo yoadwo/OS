@@ -28,6 +28,17 @@
                 "isDefault": true
             },
             "problemMatcher": []
+        },
+        {
+            "label": "build OSex6",
+            "type": "shell",
+            "command": "g++ ./assignments/ex6/*.cpp -o ./assignments/ex6/bin/ex6 -std=c++11 -pthread -Wall -Wno-vla -pedantic -march=core2 -pipe -fstack-protector-all -g  -Wl,-O,1,-z,combreloc",
+            "args": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
         }
     ]
 }

@@ -261,11 +261,12 @@ int executeNoPipe(vector<char *> argv,int background)
     }
     // for the child process:        
     else if (pid == 0){
-        // execute the command         
+        // execute the command       
+        cout << "--2 is here\n";  
         status = execvp(argv[0], &argv[0]);
         if ( status < 0){ 
             //cout << "*** ERROR: exec failed [" << argv[0] <<"]\n";
-            perror("execvp() failed");
+            perror("execvp() no pipe failed");
             exit(127);
         }
     }
@@ -326,38 +327,45 @@ int executePipe(vector <char*> argv, int pipeIndex){
     for (size_t i= pipeIndex +1; i < argv.size();i++)
         rightArg.push_back(argv[i]);
 
-    //fork for 1st child (right to pipe)
-    if ( (cp1 = fork()) == -1 ){
+    //fork for 1st child (left to pipe)
+    cp1 = fork();
+    
+    if ( cp1 == -1 ){
         perror("*** ERROR: forking child process failed");
         exit(EXIT_FAILURE);
     }
-    else if (cp1 == 0){
-        // "right" child process, transfer input from stdin to "left" child
-        dup2(fds[READ_END],STD_IN);
-        // close output of "right" child, because not used
-        close (fds[WRITE_END]);
+    if (cp1 == 0){
+        // stdout now points to pipe write, close unnecessary pipe read end
+        dup2(fds[WRITE_END],STD_OUT);
+        close (fds[READ_END]);
 
+        status = execvp(leftArg[0], &leftArg[0]);
+        if (status == -1){
+            perror("ERROR: left child execvp failed");
+            exit(EXIT_FAILURE);
+        }
+    }
+    //fork for 2nd child (right to pipe)
+    cp2 = fork();
+    if ( cp2 == 0 ){
+        // stdin now points to pipe read, close unnecessary pipe write end
+        dup2(fds[READ_END],STD_IN);
+        close(fds[WRITE_END]);
         status = execvp(rightArg[0], &rightArg[0]);
         if (status == -1){
             perror("ERROR: right child execvp failed");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
     }
-    //fork for 2nd child (left to pipe)
-    else if ( (cp2 = fork()) == 0 ){
-        dup2(fds[WRITE_END],STD_OUT);
-        close(fds[READ_END]);
-        status = execvp(leftArg[0], &leftArg[0]);
-        if (status == -1){
-            perror("ERROR: right child execvp failed");
-            exit(1);
-        }
-
-    } else {
-        // parent must wait for children
-        waitpid(cp2, NULL, 0);
-    }
-
+    
+    // parent must wait for children
+    // close both pipe ends for parent
+    close(fds[READ_END]);  
+    close(fds[WRITE_END]);
+    waitpid(cp1, &status, 0);
+    waitpid(cp2, &status, 0);
+    
+    
     return status;
 }
 

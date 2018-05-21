@@ -13,6 +13,10 @@
 #include <cstdlib>  
 #include <algorithm>
 
+#define READ_END 0
+#define WRITE_END 1
+#define STD_IN 0
+#define STD_OUT 1
 
 
 using namespace std;
@@ -230,7 +234,19 @@ bool changeDir(vector<char *> res){
     }
 }
 
-int execute(vector<char *> argv,int background)
+/*
+    function findIndex: return index of str or -1 if does not exist
+*/
+int findIndex(vector <char*> res, char const *str){
+    int index = -1;
+    // skip last element, is always NULL
+    for (size_t i =0; i< res.size()-1; i++)
+        if (!strncmp(res[i],str,strlen(str)))
+            index = i;
+    return index;
+}
+
+int executeNoPipe(vector<char *> argv,int background)
 {
     pid_t pid, child;
     int status, lastExitStatus;
@@ -295,6 +311,57 @@ int execute(vector<char *> argv,int background)
     
     return lastExitStatus;
 }
+
+int executePipe(vector <char*> argv, int pipeIndex){
+    int fds[2], status;
+    pid_t cp1, cp2;
+    vector <char*> leftArg, rightArg;
+
+    pipe(fds);
+    pipeIndex = findIndex(argv, "|");
+
+    for (int i=0; i < pipeIndex; i++)
+        leftArg.push_back(argv[i]);
+    leftArg.push_back(NULL);
+    for (size_t i= pipeIndex +1; i < argv.size();i++)
+        rightArg.push_back(argv[i]);
+
+    //fork for 1st child (right to pipe)
+    if ( (cp1 = fork()) == -1 ){
+        perror("*** ERROR: forking child process failed");
+        exit(EXIT_FAILURE);
+    }
+    else if (cp1 == 0){
+        // "right" child process, transfer input from stdin to "left" child
+        dup2(fds[READ_END],STD_IN);
+        // close output of "right" child, because not used
+        close (fds[WRITE_END]);
+
+        status = execvp(rightArg[0], &rightArg[0]);
+        if (status == -1){
+            perror("ERROR: right child execvp failed");
+            exit(1);
+        }
+    }
+    //fork for 2nd child (left to pipe)
+    else if ( (cp2 = fork()) == 0 ){
+        dup2(fds[WRITE_END],STD_OUT);
+        close(fds[READ_END]);
+        status = execvp(leftArg[0], &leftArg[0]);
+        if (status == -1){
+            perror("ERROR: right child execvp failed");
+            exit(1);
+        }
+
+    } else {
+        // parent must wait for children
+        waitpid(cp2, NULL, 0);
+    }
+
+    return status;
+}
+
+
 //zombie handler function
 void handle_zombie(int sig) {
     pid_t pid;
@@ -313,7 +380,7 @@ void handle_zombie(int sig) {
 
 int main(){
 
-    int linelen, exitStatus = 0;
+    int linelen, exitStatus = 0, pipeIndex;
     char *background;
     string line;
     vector<char*> res;
@@ -351,19 +418,28 @@ int main(){
             break;
         }
         else{
-            background = res.end()[-2];
-            if(!strncmp(background,"&",strlen("&"))){
-                // take out "NULL" and "&", return "NULL" 
-                res.pop_back();
-                res.pop_back();
-                res.push_back(NULL);
-               exitStatus = execute(res,1);
-                
+            char const *delimiter = "|";
+            pipeIndex = findIndex(res, delimiter);
+            if (pipeIndex == -1)
+            {
+                // assumes "&" is on last index
+                background = res.end()[-2];
+                if (!strncmp(background, "&", strlen("&")))
+                {
+                    // take out "NULL" and "&", return "NULL"
+                    res.pop_back();
+                    res.pop_back();
+                    res.push_back(NULL);
+                    exitStatus = executeNoPipe(res, 1);
+                }
+                else
+                {
+                    exitStatus = executeNoPipe(res, 0);
+                }
             }
             else{
-               exitStatus = execute(res,0);  
+                executePipe(res, pipeIndex);
             }
-        
         }
         printPrompt();
 

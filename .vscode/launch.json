@@ -45,13 +45,36 @@
             ]
         },
         {
-            "name": "(gdb) Launch ex5",
+            "name": "(gdb) Launch ex5f",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/assignments/ex5/task2/bin/ex5",
             "args": ["names1.txt", "output.txt"],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/assignments/ex5/task2",
+            "cwd": "${workspaceFolder}/assignments/ex5/task2/bin",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+   
+   
+   
+   
+            "name": "(gdb) Launch ex5",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/assignments/ex5_yoad_michael/bin/ex5",
+            "args": ["names1.txt", "names2.txt", "names3.txt", "names4.txt", "output.txt"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/assignments/ex5_yoad_michael/bin",
             "environment": [],
             "externalConsole": true,
             "MIMode": "gdb",
@@ -82,6 +105,7 @@
                 }
             ]
         }
+
         
     ]
 }

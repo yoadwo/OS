@@ -1,0 +1,16 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build OSex5",
+            "type": "shell",
+            "command": "g++ ./*.cpp -o ./bin/ex5 -std=c++11 -pthread -Wall -Wno-vla -pedantic -lmyutil -L. -march=core2 -pipe -fstack-protector-all -g  -Wl,-O,1,-z,combreloc",
+            "args": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}

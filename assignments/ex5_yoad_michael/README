@@ -1,0 +1,21 @@
+Amit Yahav - 302581228
+Alex Shmukler - 314311770
+
+
+Instruction for compilation:
+
+(1): export LD_LIBRARY_PATH="TYPE HERE THE FULL PATH WHERE THE LOCATION OF YOUR FILES"
+
+(2): g++ *.cpp -Wall -lpthread -L. -lmyutil
+
+(3): ./a.out file1.txt file2.txt ... results.txt
+
+(4): The result file must be exist and must be the last sent argument, if not the program will exit.
+
+Limits:
+
+(1): You must provide at least one input file and ONLY one output file.
+
+(2): Maximum amount of IP addresses for each domain name is 10.
+
+*** The runtime of the program may take long. Please do not mistake it for deadlock!! ***

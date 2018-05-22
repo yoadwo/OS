@@ -262,7 +262,6 @@ int executeNoPipe(vector<char *> argv,int background)
     // for the child process:        
     else if (pid == 0){
         // execute the command       
-        cout << "--2 is here\n";  
         status = execvp(argv[0], &argv[0]);
         if ( status < 0){ 
             //cout << "*** ERROR: exec failed [" << argv[0] <<"]\n";
@@ -314,12 +313,20 @@ int executeNoPipe(vector<char *> argv,int background)
 }
 
 int executePipe(vector <char*> argv, int pipeIndex){
-    int fds[2], status;
-    pid_t cpid1, cpid2;
+    int fds[2], status, lastExitStatus, bgIndex, bgFlag = 0;
+    const char* bgDelimiter= "&";
+    pid_t cpid1, cpid2, child;
     vector <char*> leftArg, rightArg;
 
     pipe(fds);
-    pipeIndex = findIndex(argv, "|");
+    while ((bgIndex = findIndex(argv, bgDelimiter)) != -1){
+        bgFlag = 1;
+        argv.erase (argv.begin()+bgIndex); 
+        // update pipe index after erasing "&""
+        if (bgIndex < pipeIndex)
+            pipeIndex--;
+        // remove "&" from argv, (bgIndex+1)-th item
+    }
 
     for (int i=0; i < pipeIndex; i++)
         leftArg.push_back(argv[i]);
@@ -339,8 +346,8 @@ int executePipe(vector <char*> argv, int pipeIndex){
         dup2(fds[WRITE_END],STD_OUT);
         close (fds[READ_END]);
 
-        status = execvp(leftArg[0], &leftArg[0]);
-        if (status == -1){
+        lastExitStatus = execvp(leftArg[0], &leftArg[0]);
+        if (lastExitStatus == -1){
             perror("ERROR: left child execvp failed");
             exit(EXIT_FAILURE);
         }
@@ -352,22 +359,53 @@ int executePipe(vector <char*> argv, int pipeIndex){
         // stdin now points to pipe read, close unnecessary pipe write end
         dup2(fds[READ_END],STD_IN);
         close(fds[WRITE_END]);
-        status = execvp(rightArg[0], &rightArg[0]);
-        if (status == -1){
-            perror("ERROR: right child execvp failed");
+        lastExitStatus = execvp(rightArg[0], &rightArg[0]);
+        if (lastExitStatus == -1){
+            cerr << "ERROR: right child execvp failed";
             exit(EXIT_FAILURE);
         }
     }
-
+    if (bgFlag == 0){
+        waitpid(cpid1, NULL, 0);
+        //while (wait(&status) != pid) ;      /* wait for completion  */
+        if (waitpid(cpid2, &status, 0) != -1){
+            if (WIFEXITED(status)){
+                lastExitStatus = WEXITSTATUS(status);
+                //printf("Exited normally with status %d\n", lastExitStatus);
+            }
+            else if (WIFSIGNALED(status)){
+                lastExitStatus = 128 + WTERMSIG(status);
+                cerr << "Exited due to receiving signal " << lastExitStatus << "\n";
+            }
+            else{
+                cerr <<"Something strange just happened.\n";
+            }
+        }
+        else{
+            cerr << "waitpid() failed";
+            //exit(EXIT_FAILURE);
+            lastExitStatus = EXIT_FAILURE;
+        }
+    }
+    else if (bgFlag == 1) {
+        cout << "[" << cpid1 << "]" << endl;
+        cout << "[" << cpid2 << "]" << endl;
+    }
+    
+    while ((child = waitpid(-1, &status, WNOHANG)) > 0){
+        if (WIFSIGNALED(status)){
+            lastExitStatus = WTERMSIG(status) + 128;
+        }
+        cout << "[" << child << "] : exited, status = " << lastExitStatus << endl;
+    }
     // parent must wait for children
     // close both pipe ends for parent
-    close(fds[READ_END]);  
+    close(fds[READ_END]);
     close(fds[WRITE_END]);
-    waitpid(cpid1, &status, 0);
-    waitpid(cpid2, &status, 0);
-    
-    
-    return status;
+    //waitpid(cpid1, &status, 0);
+    //waitpid(cpid2, &status, 0);
+
+    return lastExitStatus;
 }
 
 

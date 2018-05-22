@@ -315,7 +315,7 @@ int executeNoPipe(vector<char *> argv,int background)
 
 int executePipe(vector <char*> argv, int pipeIndex){
     int fds[2], status;
-    pid_t cp1, cp2;
+    pid_t cpid1, cpid2;
     vector <char*> leftArg, rightArg;
 
     pipe(fds);
@@ -328,13 +328,13 @@ int executePipe(vector <char*> argv, int pipeIndex){
         rightArg.push_back(argv[i]);
 
     //fork for 1st child (left to pipe)
-    cp1 = fork();
+    cpid1 = fork();
     
-    if ( cp1 == -1 ){
+    if ( cpid1 == -1 ){
         perror("*** ERROR: forking child process failed");
         exit(EXIT_FAILURE);
     }
-    if (cp1 == 0){
+    if (cpid1 == 0){
         // stdout now points to pipe write, close unnecessary pipe read end
         dup2(fds[WRITE_END],STD_OUT);
         close (fds[READ_END]);
@@ -344,10 +344,11 @@ int executePipe(vector <char*> argv, int pipeIndex){
             perror("ERROR: left child execvp failed");
             exit(EXIT_FAILURE);
         }
-    }
+    } 
+    // in parent
     //fork for 2nd child (right to pipe)
-    cp2 = fork();
-    if ( cp2 == 0 ){
+    cpid2 = fork();
+    if ( cpid2 == 0 ){
         // stdin now points to pipe read, close unnecessary pipe write end
         dup2(fds[READ_END],STD_IN);
         close(fds[WRITE_END]);
@@ -357,13 +358,13 @@ int executePipe(vector <char*> argv, int pipeIndex){
             exit(EXIT_FAILURE);
         }
     }
-    
+
     // parent must wait for children
     // close both pipe ends for parent
     close(fds[READ_END]);  
     close(fds[WRITE_END]);
-    waitpid(cp1, &status, 0);
-    waitpid(cp2, &status, 0);
+    waitpid(cpid1, &status, 0);
+    waitpid(cpid2, &status, 0);
     
     
     return status;

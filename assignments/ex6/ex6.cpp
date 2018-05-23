@@ -18,8 +18,8 @@
 
 #define READ_END 0
 #define WRITE_END 1
-#define STD_IN 0
-#define STD_OUT 1
+int SAVED_IN = dup(STDIN_FILENO);
+int SAVED_OUT = dup(STDOUT_FILENO);
 
 
 using namespace std;
@@ -220,7 +220,7 @@ void printPrompt(){
     input: array (vector:: res) that hold paramters to "cd" command
     prompt user if input is missing parameters
 */
-bool changeDir(vector<char *> res){ 
+bool changeDir(vector<char*> res){ 
     if (res.size() > 1){
         // if (chdir(res[1].c_str())==0)
         if (chdir(res[1])==0)
@@ -256,20 +256,74 @@ int findIndex(vector <char*> res, char const *str){
     i.e. echo hello > f1.txt ==> echo hello
 */
 vector <char*> parseRedirect(vector <char*> args){
-    vector<char*> res;
+    vector<char*> res, deep_args;
+    char *arg;
     int fd;
-    for (size_t i =0; i< args.size(); i++){
-        if (!strncmp(args[i],">",1)){
-            // if command
-            fd = open(args[i+1], O_CREAT | O_APPEND | O_RDWR, 0666);
-            // else if [0-9]+
+    string s_temp, prefi, suffi;
+    smatch m; // <-- regular expression match object
+
+    // for some cpp-ish reason, args would get deleted after regex c-tor
+    // we deep copy it into deep_args
+    for (size_t i=0; i< args.size(); i++){
+        if (args[i] != NULL ){
+            size_t len = strlen(args[i])+1;
+            arg = new char [len]; // allocate for string and ending \0
+            strncpy(arg,args[i], len);
+            deep_args.push_back(arg);
         }
-        else if (!strncmp(args[i],"<",1)){
-            //if command
-            // else if [0-9]+
-        }
+        else
+            deep_args.push_back(NULL);
     }
 
+    regex out_re{R"([0-9]+[>])"}, in_re{R"([0-9]+[<])"};
+    
+    //const char *cmd;
+    
+
+    //while (regex_search(s, m, env_re)) // <-- use it here to get the match
+    
+    // regex_search returns a match $VAR into variable "
+    // prefi = m.prefix().str();
+    // suffi = m.suffix().str();
+    // echo hello > f1.txt
+    for (size_t i =0; i< deep_args.size() - 1; i++){
+
+        string cmd(deep_args[i]);
+        // if ">" was found, redirect output of program
+        // redirect left-hand side program's output to right-hand side programs's input
+        
+        // i.e. cmd1 > cmd2
+        if (!cmd.compare(">")){
+            if (deep_args[i+1] == NULL){
+                const char* err = "OSShell: syntax error near unexpected token 'newline'\n";
+                throw invalid_argument(err);
+            }
+            cout << "cmd1 > cmd2";
+            fd = open(deep_args[i+1], O_CREAT | O_APPEND | O_RDWR, 0666);
+            dup2(fd,STDOUT_FILENO);
+            close(fd);
+            // increament i to skip ">" and following file
+            i++;
+        }
+        // i.e. [number]>
+        else if ( regex_search(cmd, m,out_re) ){
+            cout << "[number]>";
+        }
+        // i.e. cmd1 < cmd2
+        else if (!cmd.compare("<")){
+            cout << "cmd1 < cmd";
+            
+        }
+        // i.e. [number]<
+        else if ( regex_search(cmd, m,out_re) )  {
+            cout << "[number]<";
+        }
+        else {
+            res.push_back(deep_args[i]);
+        }
+    }
+    res.push_back(nullptr);
+    return res;
 }
 
 int executeNoPipe(vector<char *> argv,int background)
@@ -297,6 +351,8 @@ int executeNoPipe(vector<char *> argv,int background)
     }
     // for the parent:     
     else if (pid > 0){
+        // have parent reopen stdout after exec
+        dup2(SAVED_OUT, STDOUT_FILENO);
         if (background == 0)
         {
             //while (wait(&status) != pid) ;      /* wait for completion  */
@@ -369,7 +425,7 @@ int executePipe(vector <char*> argv, int pipeIndex){
     }
     if (cpid1 == 0){
         // stdout now points to pipe write, close unnecessary pipe read end
-        dup2(fds[WRITE_END],STD_OUT);
+        dup2(fds[WRITE_END],STDOUT_FILENO);
         close (fds[READ_END]);
 
         lastExitStatus = execvp(leftArg[0], &leftArg[0]);
@@ -383,7 +439,7 @@ int executePipe(vector <char*> argv, int pipeIndex){
     cpid2 = fork();
     if ( cpid2 == 0 ){
         // stdin now points to pipe read, close unnecessary pipe write end
-        dup2(fds[READ_END],STD_IN);
+        dup2(fds[READ_END],STDIN_FILENO);
         close(fds[WRITE_END]);
         lastExitStatus = execvp(rightArg[0], &rightArg[0]);
         if (lastExitStatus == -1){
@@ -474,6 +530,12 @@ int main(){
         line = expandEnv(line);
         line = expandStatus(line, exitStatus);
         res = parseLine(line, ' ');
+        try {
+        res = parseRedirect(res);
+        } catch (const invalid_argument& ia){
+            cerr << ia.what();
+            return(EXIT_FAILURE);
+        }
 
         if (res.empty()){
 
@@ -487,7 +549,7 @@ int main(){
         }
         // else if (!res[0].compare("exit")){
         else if (!strncmp(res[0],"exit",strlen("exit"))){
-            std::cout << "C ya!\n";
+            cout << "C ya!\n";
             break;
         }
         else{

@@ -4,6 +4,9 @@
 #include <string.h>
 #include <signal.h> 
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include <iostream>
 #include <vector>
@@ -254,12 +257,14 @@ int findIndex(vector <char*> res, char const *str){
 */
 vector <char*> parseRedirect(vector <char*> args){
     vector<char*> res;
+    int fd;
     for (size_t i =0; i< args.size(); i++){
         if (!strncmp(args[i],">",1)){
             // if command
+            fd = open(args[i+1], O_CREAT | O_APPEND | O_RDWR, 0666);
             // else if [0-9]+
         }
-        else if (!strncmp(args[i],">",1)){
+        else if (!strncmp(args[i],"<",1)){
             //if command
             // else if [0-9]+
         }

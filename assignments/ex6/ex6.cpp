@@ -246,6 +246,27 @@ int findIndex(vector <char*> res, char const *str){
     return index;
 }
 
+/*
+    function parseRedirect: manage redirections in command
+    command extracts "<", ">", points file descriptors accordingly using dupe2
+    then pop redirect and its argument
+    i.e. echo hello > f1.txt ==> echo hello
+*/
+vector <char*> parseRedirect(vector <char*> args){
+    vector<char*> res;
+    for (size_t i =0; i< args.size(); i++){
+        if (!strncmp(args[i],">",1)){
+            // if command
+            // else if [0-9]+
+        }
+        else if (!strncmp(args[i],">",1)){
+            //if command
+            // else if [0-9]+
+        }
+    }
+
+}
+
 int executeNoPipe(vector<char *> argv,int background)
 {
     pid_t pid, child;

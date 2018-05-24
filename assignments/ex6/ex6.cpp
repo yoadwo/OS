@@ -277,7 +277,7 @@ vector <char*> parseRedirect(vector <char*> args){
             deep_args.push_back(NULL);
     }
 
-    regex out_re{R"([0-9]+[>])"}, in_re{R"([0-9]+[<])"};    
+    regex out_re{R"(-?[0-9]+[>])"}, in_re{R"(-?[0-9]+[<])"};    
 
     //while (regex_search(s, m, env_re)) // <-- use it here to get the match
     
@@ -316,9 +316,11 @@ vector <char*> parseRedirect(vector <char*> args){
             }
             // close given fd#, open file
             // don't forget to reopen stdoud! at parent @ executeNoPipe
-            FILENO = stoi(m[0]);
+            FILENO = stoi(m[0].str().substr(0, m[0].str().length()-1));
             if (FILENO < 0){
-                const char* err = "OS Shell: invalid input " << m.prefix.str() <<"\n";
+                s_temp.append(deep_args[0]);
+                s_temp.append(": invalid input (negative file descriptor used\n");
+                const char* err = s_temp.c_str();
                 throw invalid_argument(err);
             }
             SAVED_NUM = dup (FILENO);

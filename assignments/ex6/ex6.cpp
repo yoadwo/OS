@@ -288,8 +288,11 @@ vector <char*> parseRedirect(vector <char*> args){
     for (size_t i =0; i< deep_args.size() - 1; i++){
 
         string cmd(deep_args[i]);
-        // if ">" was found, redirect output of program
-        // redirect left-hand side program's output to right-hand side programs's input
+        /* if ">" was found, redirect output of program
+        * redirect left-hand side program's output to right-hand side programs's input
+        * if "<" was found, redirect input of program
+        * redirect left-hand side program's input to right-hand side programs's output
+        *  */
         
         // i.e. cmd1 > cmd2
         if (!cmd.compare(">")){
@@ -323,7 +326,16 @@ vector <char*> parseRedirect(vector <char*> args){
         }
         // i.e. cmd1 < cmd2
         else if (!cmd.compare("<")){
-            cout << "cmd1 < cmd";
+            cout << "cmd1 < cmd2\n";
+            if (deep_args[i+1] == NULL){
+                const char* err = "OSShell: syntax error near unexpected token 'newline'\n";
+                throw invalid_argument(err);
+            }
+            fd = open(deep_args[i+1], O_CREAT | O_APPEND | O_RDWR, 0666);
+            dup2(fd,STDIN_FILENO);
+            close(fd);
+            // increament i to skip ">" and following file
+            i++;
             
         }
         // i.e. [number]<
@@ -363,8 +375,9 @@ int executeNoPipe(vector<char *> argv,int background)
     }
     // for the parent:     
     else if (pid > 0){
-        // have parent reopen stdout after exec
+        // have parent reopen stdout & stdin after exec
         dup2(SAVED_OUT, STDOUT_FILENO);
+        dup2(SAVED_IN, STDIN_FILENO);
         if (SAVED_NUM != -1)
             dup2(SAVED_NUM, FILENO);
         if (background == 0)

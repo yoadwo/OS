@@ -1,0 +1,2 @@
+ls: invalid option -- 'O'
+Try 'ls --help' for more information.

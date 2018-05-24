@@ -20,6 +20,8 @@
 #define WRITE_END 1
 int SAVED_IN = dup(STDIN_FILENO);
 int SAVED_OUT = dup(STDOUT_FILENO);
+int FILENO;
+int SAVED_NUM = -1;
 
 
 using namespace std;
@@ -149,13 +151,13 @@ string expandTildeInput(string text){
 
     while (regex_search(s, m, env_re)) // <-- use it here to get the match
     {
-        // regex_search returns a match $VAR into variable "m"
+        // regex_search returns a match "~"" into variable "m"
         tilde = m[0];
-        // transform $VAR into VAR and lookup in env
+        // transform ~ into full path and lookup in env
         user_home = getenv("HOME");
         prefi = m.prefix().str();
         suffi = m.suffix().str();
-        // s_temp = <old string prefix> + <$VAR value> + <old string suffix>
+        // s_temp = /home/<user>/ + <old string suffix>
         s_temp = prefi;
         
         s_temp.append(user_home);
@@ -275,14 +277,11 @@ vector <char*> parseRedirect(vector <char*> args){
             deep_args.push_back(NULL);
     }
 
-    regex out_re{R"([0-9]+[>])"}, in_re{R"([0-9]+[<])"};
-    
-    //const char *cmd;
-    
+    regex out_re{R"([0-9]+[>])"}, in_re{R"([0-9]+[<])"};    
 
     //while (regex_search(s, m, env_re)) // <-- use it here to get the match
     
-    // regex_search returns a match $VAR into variable "
+    // regex_search returns a match $VAR into variable m
     // prefi = m.prefix().str();
     // suffi = m.suffix().str();
     // echo hello > f1.txt
@@ -298,7 +297,8 @@ vector <char*> parseRedirect(vector <char*> args){
                 const char* err = "OSShell: syntax error near unexpected token 'newline'\n";
                 throw invalid_argument(err);
             }
-            cout << "cmd1 > cmd2";
+            // close stdout, open file
+            // don't forget to reopen stdoud! at parent @ executeNoPipe
             fd = open(deep_args[i+1], O_CREAT | O_APPEND | O_RDWR, 0666);
             dup2(fd,STDOUT_FILENO);
             close(fd);
@@ -307,7 +307,19 @@ vector <char*> parseRedirect(vector <char*> args){
         }
         // i.e. [number]>
         else if ( regex_search(cmd, m,out_re) ){
-            cout << "[number]>";
+            if (deep_args[i+1] == NULL){
+                const char* err = "OSShell: syntax error near unexpected token 'newline'\n";
+                throw invalid_argument(err);
+            }
+            // close given fd#, open file
+            // don't forget to reopen stdoud! at parent @ executeNoPipe
+            FILENO = stoi(m[0]);
+            SAVED_NUM = dup (FILENO);
+            fd = open(deep_args[i+1], O_CREAT | O_APPEND | O_RDWR, 0666);
+            dup2(fd, FILENO);
+            close(fd);
+            // increament i to skip ">" and following file
+            i++;
         }
         // i.e. cmd1 < cmd2
         else if (!cmd.compare("<")){
@@ -353,6 +365,8 @@ int executeNoPipe(vector<char *> argv,int background)
     else if (pid > 0){
         // have parent reopen stdout after exec
         dup2(SAVED_OUT, STDOUT_FILENO);
+        if (SAVED_NUM != -1)
+            dup2(SAVED_NUM, FILENO);
         if (background == 0)
         {
             //while (wait(&status) != pid) ;      /* wait for completion  */

@@ -317,6 +317,10 @@ vector <char*> parseRedirect(vector <char*> args){
             // close given fd#, open file
             // don't forget to reopen stdoud! at parent @ executeNoPipe
             FILENO = stoi(m[0]);
+            if (FILENO < 0){
+                const char* err = "OS Shell: invalid input " << m.prefix.str() <<"\n";
+                throw invalid_argument(err);
+            }
             SAVED_NUM = dup (FILENO);
             fd = open(deep_args[i+1], O_CREAT | O_APPEND | O_RDWR, 0666);
             dup2(fd, FILENO);

@@ -397,6 +397,13 @@ int executeNoPipe(vector<char *> argv,int background)
     pid_t pid, child;
     int status, lastExitStatus;
 
+    try {
+        argv = parseRedirect(argv);
+    } catch (const invalid_argument& ia){
+        cerr << ia.what();
+        return(EXIT_FAILURE);
+    }
+
     // fork a child process
     pid = fork();
 
@@ -599,12 +606,12 @@ int main(){
         line = expandEnv(line);
         line = expandStatus(line, exitStatus);
         res = parseLine(line, ' ');
-        try {
+        /* try {
         res = parseRedirect(res);
         } catch (const invalid_argument& ia){
             cerr << ia.what();
             return(EXIT_FAILURE);
-        }
+        } */
 
         if (res.empty()){
 

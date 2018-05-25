@@ -215,7 +215,7 @@ void printPrompt(){
     if (getcwd(cwd, sizeof(cwd)) == NULL)
         perror("??");
     else
-        std:: cout << expandTildePrompt(cwd) << " >";
+        std:: cout << expandTildePrompt(cwd) << "> ";
 }
 
 /* function changeDir: change current working directory
@@ -297,7 +297,7 @@ vector <char*> parseRedirect(vector <char*> args){
         // i.e. cmd1 > cmd2
         if (!cmd.compare(">")){
             if (deep_args[i+1] == NULL){
-                const char* err = "OSShell: syntax error near unexpected token 'newline'\n";
+                const char* err = "OS SHell: syntax error near unexpected token 'newline'\n";
                 throw invalid_argument(err);
             }
             // close stdout, open file
@@ -311,7 +311,7 @@ vector <char*> parseRedirect(vector <char*> args){
         // i.e. [number]>
         else if ( regex_search(cmd, m,out_re) ){
             if (deep_args[i+1] == NULL){
-                const char* err = "OSShell: syntax error near unexpected token 'newline'\n";
+                const char* err = "OS SHell: syntax error near unexpected token 'newline'\n";
                 throw invalid_argument(err);
             }
             // close given fd#, open file
@@ -332,12 +332,20 @@ vector <char*> parseRedirect(vector <char*> args){
         }
         // i.e. cmd1 < cmd2
         else if (!cmd.compare("<")){
-            cout << "cmd1 < cmd2\n";
             if (deep_args[i+1] == NULL){
-                const char* err = "OSShell: syntax error near unexpected token 'newline'\n";
+                const char* err = "OS SHell: syntax error near unexpected token 'newline'\n";
                 throw invalid_argument(err);
             }
-            fd = open(deep_args[i+1], O_CREAT | O_APPEND | O_RDWR, 0666);
+            fd = open(deep_args[i+1], O_RDONLY, 0444);
+            if (fd == -1){
+                s_temp.append("OS Shell: ");
+                s_temp.append(deep_args[i+1]);
+                s_temp.append(": ");
+                s_temp.append(strerror(errno));
+                s_temp.append("\n");
+                const char* err = s_temp.c_str();
+                throw invalid_argument(err);
+            }
             dup2(fd,STDIN_FILENO);
             close(fd);
             // increament i to skip ">" and following file
@@ -347,6 +355,34 @@ vector <char*> parseRedirect(vector <char*> args){
         // i.e. [number]<
         else if ( regex_search(cmd, m,out_re) )  {
             cout << "[number]<";
+            if (deep_args[i+1] == NULL){
+                const char* err = "OS SHell: syntax error near unexpected token 'newline'\n";
+                throw invalid_argument(err);
+            }
+            // close given fd#, open file
+            // don't forget to reopen stdin! at parent @ executeNoPipe
+            FILENO = stoi(m[0].str().substr(0, m[0].str().length()-1));
+            if (FILENO < 0){
+                s_temp.append(deep_args[0]);
+                s_temp.append(": invalid input (negative file descriptor used\n");
+                const char* err = s_temp.c_str();
+                throw invalid_argument(err);
+            }
+            SAVED_NUM = dup (FILENO);
+            fd = open(deep_args[i+1], O_RDONLY, 444);
+            if (fd == -1){
+                s_temp.append("OS Shell: ");
+                s_temp.append(deep_args[i+1]);
+                s_temp.append(": ");
+                s_temp.append(strerror(errno));
+                s_temp.append("\n");
+                const char* err = s_temp.c_str();
+                throw invalid_argument(err);
+            }
+            dup2(FILENO, fd);
+            close(FILENO);
+            // increament i to skip ">" and following file
+            i++;
         }
         else {
             res.push_back(deep_args[i]);

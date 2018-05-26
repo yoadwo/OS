@@ -18,3 +18,5 @@ assignments/ex5/ThreadPool\.hpp
 assignments/ex5/task2/bin/
 
 assignments/ex6/bin/ex6
+
+*.txt

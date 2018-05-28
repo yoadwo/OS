@@ -473,7 +473,7 @@ int executeNoPipe(vector<char *> argv,int background)
 int executePipe(vector <char*> argv, int pipeIndex){
     int fds[2], status, lastExitStatus, bgIndex, bgFlag = 0;
     const char* bgDelimiter= "&";
-    pid_t cpid1, cpid2, child;
+    pid_t cpid1, cpid2;
     vector <char*> leftArg, rightArg;
 
     pipe(fds);
@@ -491,6 +491,20 @@ int executePipe(vector <char*> argv, int pipeIndex){
     leftArg.push_back(NULL);
     for (size_t i= pipeIndex +1; i < argv.size();i++)
         rightArg.push_back(argv[i]);
+
+    try {
+        argv = parseRedirect(leftArg);
+    } catch (const invalid_argument& ia){
+        cerr << ia.what();
+        return(EXIT_FAILURE);
+    }
+
+    try {
+        argv = parseRedirect(rightArg);
+    } catch (const invalid_argument& ia){
+        cerr << ia.what();
+        return(EXIT_FAILURE);
+    }
 
     //fork for 1st child (left to pipe)
     cpid1 = fork();
@@ -557,34 +571,6 @@ int executePipe(vector <char*> argv, int pipeIndex){
         cout << "[" << cpid2 << "]" << endl;
     }
     
-    // while((child = waitpid(-1, &status, WNOHANG)) > 0)
-    // {
-    //     if(WIFEXITED(status))
-    //     {
-    //         lastExitStatus = WEXITSTATUS(status); // returns the exit status of the child
-    //     }
-    //     if (WIFSIGNALED(status))
-    //     {
-    //         lastExitStatus = WTERMSIG(status) + 128;
-    //     }
-    //     if(child == lastProcess)
-    //     {
-    //         cout << "[" << child << "] : exited, status = " << lastExitStatus << endl;
-    //     }
-        //lastExitStatus = 0;
-    //}
-   /* while ((child = waitpid(-1, &status, WNOHANG)) > 0){
-        if (WIFSIGNALED(status)){
-            lastExitStatus = WTERMSIG(status) + 128;
-        }
-        cout << "[" << child << "] : exited, status = " << lastExitStatus << endl;
-    }*/
-    // parent must wait for children
-    // close both pipe ends for parent
-    //close(fds[READ_END]);
-    //close(fds[WRITE_END]);
-    //waitpid(cpid1, &status, 0);
-    //waitpid(cpid2, &status, 0);
 
     return lastExitStatus;
 }

@@ -22,7 +22,7 @@ int SAVED_IN = dup(STDIN_FILENO);
 int SAVED_OUT = dup(STDOUT_FILENO);
 int FILENO;
 int SAVED_NUM = -1;
-
+pid_t lastProcess;
 
 using namespace std;
 
@@ -514,6 +514,7 @@ int executePipe(vector <char*> argv, int pipeIndex){
     //fork for 2nd child (right to pipe)
     cpid2 = fork();
     if ( cpid2 == 0 ){
+         //waitpid(cpid1, &status, 0);
         // stdin now points to pipe read, close unnecessary pipe write end
         dup2(fds[READ_END],STDIN_FILENO);
         close(fds[WRITE_END]);
@@ -523,6 +524,12 @@ int executePipe(vector <char*> argv, int pipeIndex){
             exit(EXIT_FAILURE);
         }
     }
+
+    else if(cpid2>0){
+        lastProcess=cpid2;
+    }
+     close(fds[READ_END]);
+     close(fds[WRITE_END]);
     if (bgFlag == 0){
         waitpid(cpid1, NULL, 0);
         //while (wait(&status) != pid) ;      /* wait for completion  */
@@ -546,20 +553,36 @@ int executePipe(vector <char*> argv, int pipeIndex){
         }
     }
     else if (bgFlag == 1) {
-        cout << "[" << cpid1 << "]" << endl;
+      // cout << "[" << cpid1 << "]" << endl;
         cout << "[" << cpid2 << "]" << endl;
     }
     
-    while ((child = waitpid(-1, &status, WNOHANG)) > 0){
+    // while((child = waitpid(-1, &status, WNOHANG)) > 0)
+    // {
+    //     if(WIFEXITED(status))
+    //     {
+    //         lastExitStatus = WEXITSTATUS(status); // returns the exit status of the child
+    //     }
+    //     if (WIFSIGNALED(status))
+    //     {
+    //         lastExitStatus = WTERMSIG(status) + 128;
+    //     }
+    //     if(child == lastProcess)
+    //     {
+    //         cout << "[" << child << "] : exited, status = " << lastExitStatus << endl;
+    //     }
+        //lastExitStatus = 0;
+    //}
+   /* while ((child = waitpid(-1, &status, WNOHANG)) > 0){
         if (WIFSIGNALED(status)){
             lastExitStatus = WTERMSIG(status) + 128;
         }
         cout << "[" << child << "] : exited, status = " << lastExitStatus << endl;
-    }
+    }*/
     // parent must wait for children
     // close both pipe ends for parent
-    close(fds[READ_END]);
-    close(fds[WRITE_END]);
+    //close(fds[READ_END]);
+    //close(fds[WRITE_END]);
     //waitpid(cpid1, &status, 0);
     //waitpid(cpid2, &status, 0);
 
@@ -589,12 +612,31 @@ int main(){
     char *background;
     string line;
     vector<char*> res;
+    int lastExitStatus;
+    int status;
+    pid_t child;
     
     cout <<"Welcome to OS SHell\n";
     printPrompt();    
     
     while (getline (cin,line))
     {
+        while((child = waitpid(-1, &status, WNOHANG)) > 0)
+    {
+        if(WIFEXITED(status))
+        {
+            lastExitStatus = WEXITSTATUS(status); // returns the exit status of the child
+        }
+        if (WIFSIGNALED(status))
+        {
+            lastExitStatus = WTERMSIG(status) + 128;
+        }
+       if(child == lastProcess)
+        {
+            cout << "[" << child << "] : exited, status = " << lastExitStatus << endl;
+        }
+        //lastExitStatus = 0;
+    }
         linelen = line.length();
         //if only "return" was pressed
         if (linelen == 0){

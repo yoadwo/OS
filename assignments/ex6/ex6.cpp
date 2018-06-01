@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -26,6 +27,17 @@ pid_t lastProcess;
 
 using namespace std;
 
+/* function convert: helper function to std::transform
+  string to char*
+    
+*/
+char *convert(const string & s)
+{
+   char *pc = new char[s.size()+1];
+   strcpy(pc, s.c_str());
+   return pc; 
+}
+
 /*  function ParseLine: parse string by delimiter
     input: line to parse (string::line) and delimiter to parse by (char::delimiter)
 */
@@ -44,12 +56,14 @@ vector<char *> parseLine(string line, char delimiter){
         
     }
     //tokens.push_back(nullptr);
+    transform(tokens.begin(), tokens.end(), back_inserter(cstrings), convert);  
     
-    cstrings.reserve(tokens.size());
-
+    // legacy: bad way to convert string array to char* array
+    /* cstrings.reserve(tokens.size());
     for(size_t i = 0; i < tokens.size(); ++i)
         cstrings.push_back(const_cast<char*>(tokens[i].c_str()));
-    cstrings.push_back(nullptr);
+    */
+    cstrings.push_back(nullptr); 
     
     return cstrings;
 }
@@ -58,15 +72,15 @@ vector<char *> parseLine(string line, char delimiter){
     mainly used to catch End-Of-File (Ctrl+D)
 */
 void handleIOErrors(){
-    if (std::cin.bad()){
+    if (cin.bad()){
         // IO error
     }
-    else if (!std::cin.eof()){
+    else if (!cin.eof()){
         // format error (not possible with getline but possible with operator>>)
     }
     else
     {
-        std::cout << "C ya!\n";   
+        cout << "C ya!\n";   
     }
 }
 
@@ -205,17 +219,16 @@ string expandStatus(string text, int exitStatus){
     return s;
 }
 
-
 /* function printPrompt: show shell messages
     OSHell: <path> $
 */
 void printPrompt(){
     char cwd[1024];
-    std::cout << "OS SHell: "; 
+    cout << "OS SHell: "; 
     if (getcwd(cwd, sizeof(cwd)) == NULL)
-        perror("??");
+        cerr << "Couldn't get current directory\n";
     else
-        std:: cout << expandTildePrompt(cwd) << "> ";
+        cout << expandTildePrompt(cwd) << "> ";
 }
 
 /* function changeDir: change current working directory
@@ -239,8 +252,8 @@ bool changeDir(vector<char*> res){
     }
 }
 
-/*
-    function findIndex: return index of str or -1 if does not exist
+/*  function findIndex: return index of str 
+    -1 if does not exist
 */
 int findIndex(vector <char*> res, char const *str){
     int index = -1;
@@ -281,10 +294,6 @@ vector <char*> parseRedirect(vector <char*> args){
 
     //while (regex_search(s, m, env_re)) // <-- use it here to get the match
     
-    // regex_search returns a match $VAR into variable m
-    // prefi = m.prefix().str();
-    // suffi = m.suffix().str();
-    // echo hello > f1.txt
     for (size_t i =0; i< deep_args.size() - 1; i++){
 
         string cmd(deep_args[i]);
@@ -302,7 +311,7 @@ vector <char*> parseRedirect(vector <char*> args){
             }
             // close stdout, open file
             // don't forget to reopen stdoud! at parent @ executeNoPipe
-            fd = open(deep_args[i+1], O_CREAT | O_APPEND | O_RDWR, 0666);
+            fd = open(deep_args[i+1], O_CREAT | O_TRUNC | O_RDWR, 0666);
             dup2(fd,STDOUT_FILENO);
             close(fd);
             // increament i to skip ">" and following file
@@ -324,7 +333,7 @@ vector <char*> parseRedirect(vector <char*> args){
                 throw invalid_argument(err);
             }
             SAVED_NUM = dup (FILENO);
-            fd = open(deep_args[i+1], O_CREAT | O_APPEND | O_RDWR, 0666);
+            fd = open(deep_args[i+1], O_CREAT | O_TRUNC | O_RDWR, 0666);
             dup2(fd, FILENO);
             close(fd);
             // increament i to skip ">" and following file
@@ -392,6 +401,157 @@ vector <char*> parseRedirect(vector <char*> args){
     return res;
 }
 
+void parseRedirectSelf(vector <char*> &args){
+    int fd;
+    size_t i;
+    vector<char*>::iterator it = args.begin();
+    string s_temp, prefi, suffi, inRredirect("(-?[0-9]+[<])"), outRedirect("(-?[0-9]+[>])");
+    smatch m; // <-- regular expression match object
+
+    //regex out_re{R"(-?[0-9]+[>])"}, in_re{R"(-?[0-9]+[<])"};    
+    regex out_re, in_re;
+    in_re.assign(inRredirect);
+    out_re.assign(outRedirect);
+    
+    //while (regex_search(s, m, env_re)) // <-- use it here to get the match
+    // args.size()-1 to avoid null terminated array
+    for (i=0; i < args.size() -1; ++i){
+        string cmd(args[i]);
+        /* if ">" was found, redirect output of program
+        * redirect left-hand side program's output to right-hand side programs's input
+        * if "<" was found, redirect input of program
+        * redirect left-hand side program's input to right-hand side programs's output
+        *  */
+        
+        // i.e. cmd1 > cmd2
+        if (!cmd.compare(">")){
+            if ((args)[i+1] == NULL){
+                const char* err = "OS SHell: syntax error near unexpected token 'newline'\n";
+                throw invalid_argument(err);
+            }
+            // close stdout, open file
+            // don't forget to reopen stdoud! see: executeNoPipe-> parent clause
+            fd = open((args)[i+1], O_CREAT | O_TRUNC |O_RDWR, 0666);
+            if (fd == -1){
+                s_temp.append("OS Shell: ");
+                s_temp.append((args)[i+1]);
+                s_temp.append(": ");
+                s_temp.append(strerror(errno));
+                s_temp.append("\n");
+                const char* err = s_temp.c_str();
+                s_temp = "";
+                throw invalid_argument(err);
+            }
+            dup2(fd,STDOUT_FILENO);
+            close(fd);
+            // pop ">" and cmd, decrease i to match new number of elements
+            args.erase(args.begin()+i, args.begin()+i+2);
+            i--;
+        }
+        // i.e. [number]>
+        else if ( regex_search(cmd, m,out_re) ){
+            if ((args)[i+1] == NULL){
+                const char* err = "OS SHell: syntax error near unexpected token 'newline'\n";
+                throw invalid_argument(err);
+            }
+            // close given fd#, open file
+            // don't forget to reopen stdoud! see: executeNoPipe-> parent clause
+            FILENO = stoi(m[0].str().substr(0, m[0].str().length()-1));
+            if (FILENO < 0){
+                s_temp.append((args)[0]);
+                s_temp.append(": invalid input (negative file descriptor used\n");
+                const char* err = s_temp.c_str();
+                s_temp = "";
+                throw invalid_argument(err);
+            }
+            SAVED_NUM = dup (FILENO);
+            fd = open((args)[i+1], O_CREAT | O_TRUNC | O_RDWR, 0666);
+            if (fd == -1){
+                s_temp.append("OS Shell: ");
+                s_temp.append((args)[i+1]);
+                s_temp.append(": ");
+                s_temp.append(strerror(errno));
+                s_temp.append("\n");
+                const char* err = s_temp.c_str();
+                s_temp = "";
+                throw invalid_argument(err);
+            }
+            dup2(fd, FILENO);
+            close(fd);
+            // pop ">" and cmd, decrease i to match new number of elements
+            args.erase(args.begin()+i, args.begin()+i+2);
+            i--;
+        }
+        // i.e. cmd1 < cmd2
+        else if (!cmd.compare("<")){
+            if ((args)[i+1] == NULL){
+                const char* err = "OS SHell: syntax error near unexpected token 'newline'\n";
+                throw invalid_argument(err);
+            }
+            fd = open((args)[i+1], O_RDONLY, 0444);
+            if (fd == -1){
+                s_temp.append("OS Shell: ");
+                s_temp.append((args)[i+1]);
+                s_temp.append(": ");
+                s_temp.append(strerror(errno));
+                s_temp.append("\n");
+                const char* err = s_temp.c_str();
+                s_temp = "";
+                throw invalid_argument(err);
+            }
+            dup2(fd,STDIN_FILENO);
+            close(fd);
+            // pop ">" and cmd, decrease i to match new number of elements
+            args.erase(args.begin()+i, args.begin()+i+2);
+            i--;
+            
+        }
+        // i.e. [number]<
+        else if ( regex_search(cmd, m,out_re) )  {
+            cout << "[number]<";
+            if ((args)[i+1] == NULL){
+                const char* err = "OS SHell: syntax error near unexpected token 'newline'\n";
+                throw invalid_argument(err);
+            }
+            // close given fd#, open file
+            // don't forget to reopen stdin! at parent @ executeNoPipe
+            FILENO = stoi(m[0].str().substr(0, m[0].str().length()-1));
+            if (FILENO < 0){
+                s_temp.append((args)[0]);
+                s_temp.append(": invalid input (negative file descriptor used\n");
+                const char* err = s_temp.c_str();
+                s_temp = "";
+                throw invalid_argument(err);
+            }
+            SAVED_NUM = dup (FILENO);
+            fd = open((args)[i+1], O_RDONLY, 444);
+            if (fd == -1){
+                s_temp.append("OS Shell: ");
+                s_temp.append((args)[i+1]);
+                s_temp.append(": ");
+                s_temp.append(strerror(errno));
+                s_temp.append("\n");
+                const char* err = s_temp.c_str();
+                s_temp = "";
+                throw invalid_argument(err);
+            }
+            dup2(FILENO, fd);
+            close(FILENO);
+            // pop ">" and cmd, decrease i to match new number of elements
+            args.erase(args.begin()+i, args.begin()+i+2);
+            i--;
+        }
+        else {
+            //res.push_back(deep_args[i]);
+            // do nothing
+            continue;
+        }
+    }
+    // no need to do a push back for another null
+    //args->push_back(nullptr);
+    //return res;
+}
+
 int executeNoPipe(vector<char *> argv,int background)
 {
     pid_t pid, child;
@@ -409,7 +569,7 @@ int executeNoPipe(vector<char *> argv,int background)
 
     // check if fork failed
     if (pid == -1){
-        perror("*** ERROR: forking child process failed");
+        perror("executeNoPipe");
         exit(EXIT_FAILURE);
     }
     // for the child process:        
@@ -417,18 +577,17 @@ int executeNoPipe(vector<char *> argv,int background)
         // execute the command       
         status = execvp(argv[0], &argv[0]);
         if ( status < 0){ 
-            //cout << "*** ERROR: exec failed [" << argv[0] <<"]\n";
-            perror("execvp() no pipe failed");
+            perror(argv[0]);
             exit(127);
         }
     }
     // for the parent:     
     else if (pid > 0){
-        // have parent reopen stdout & stdin after exec
+        /* // have parent reopen stdout & stdin after exec
         dup2(SAVED_OUT, STDOUT_FILENO);
         dup2(SAVED_IN, STDIN_FILENO);
         if (SAVED_NUM != -1)
-            dup2(SAVED_NUM, FILENO);
+            dup2(SAVED_NUM, FILENO); */
         if (background == 0)
         {
             //while (wait(&status) != pid) ;      /* wait for completion  */
@@ -451,7 +610,7 @@ int executeNoPipe(vector<char *> argv,int background)
             }
             else
             {
-                perror("waitpid() failed");
+                perror("ExecuteNoPipe:waitpid() failed");
                 //exit(EXIT_FAILURE);
                 lastExitStatus = EXIT_FAILURE;
             }
@@ -475,6 +634,8 @@ int executePipe(vector <char*> argv, int pipeIndex){
     const char* bgDelimiter= "&";
     pid_t cpid1, cpid2;
     vector <char*> leftArg, rightArg;
+    leftArg.clear();
+    rightArg.clear();
 
     pipe(fds);
     while ((bgIndex = findIndex(argv, bgDelimiter)) != -1){
@@ -493,14 +654,18 @@ int executePipe(vector <char*> argv, int pipeIndex){
         rightArg.push_back(argv[i]);
 
     try {
-        argv = parseRedirect(leftArg);
+        //argv = parseRedirect(leftArg);
+        //leftArg = parseRedirect(leftArg);
+        parseRedirectSelf(leftArg);
     } catch (const invalid_argument& ia){
         cerr << ia.what();
         return(EXIT_FAILURE);
     }
 
     try {
-        argv = parseRedirect(rightArg);
+        //argv = parseRedirect(rightArg);
+        //rightArg = parseRedirect(rightArg);
+        parseRedirectSelf(rightArg);
     } catch (const invalid_argument& ia){
         cerr << ia.what();
         return(EXIT_FAILURE);
@@ -510,7 +675,7 @@ int executePipe(vector <char*> argv, int pipeIndex){
     cpid1 = fork();
     
     if ( cpid1 == -1 ){
-        perror("*** ERROR: forking child process failed");
+        perror("ExecutePipe, left child fork");
         exit(EXIT_FAILURE);
     }
     if (cpid1 == 0){
@@ -520,7 +685,7 @@ int executePipe(vector <char*> argv, int pipeIndex){
 
         lastExitStatus = execvp(leftArg[0], &leftArg[0]);
         if (lastExitStatus == -1){
-            perror("ERROR: left child execvp failed");
+            perror(leftArg[0]);
             exit(EXIT_FAILURE);
         }
     } 
@@ -534,7 +699,7 @@ int executePipe(vector <char*> argv, int pipeIndex){
         close(fds[WRITE_END]);
         lastExitStatus = execvp(rightArg[0], &rightArg[0]);
         if (lastExitStatus == -1){
-            cerr << "ERROR: right child execvp failed";
+            perror(rightArg[0]);
             exit(EXIT_FAILURE);
         }
     }
@@ -592,6 +757,14 @@ void handle_zombie(int sig) {
     //sleep(1);
 } 
 
+void reopenDescriptors(){
+    // have parent reopen stdout & stdin after exec
+        dup2(SAVED_OUT, STDOUT_FILENO);
+        dup2(SAVED_IN, STDIN_FILENO);
+        if (SAVED_NUM != -1)
+            dup2(SAVED_NUM, FILENO);
+}
+
 int main(){
 
     int linelen, exitStatus = 0, pipeIndex;
@@ -607,22 +780,22 @@ int main(){
     
     while (getline (cin,line))
     {
-        while((child = waitpid(-1, &status, WNOHANG)) > 0)
-    {
-        if(WIFEXITED(status))
+        while ((child = waitpid(-1, &status, WNOHANG)) > 0)
         {
-            lastExitStatus = WEXITSTATUS(status); // returns the exit status of the child
+            if (WIFEXITED(status))
+            {
+                lastExitStatus = WEXITSTATUS(status); // returns the exit status of the child
+            }
+            if (WIFSIGNALED(status))
+            {
+                lastExitStatus = WTERMSIG(status) + 128;
+            }
+            if (child == lastProcess)
+            {
+                cout << "[" << child << "] : exited, status = " << lastExitStatus << endl;
+            }
+            //lastExitStatus = 0;
         }
-        if (WIFSIGNALED(status))
-        {
-            lastExitStatus = WTERMSIG(status) + 128;
-        }
-       if(child == lastProcess)
-        {
-            cout << "[" << child << "] : exited, status = " << lastExitStatus << endl;
-        }
-        //lastExitStatus = 0;
-    }
         linelen = line.length();
         //if only "return" was pressed
         if (linelen == 0){
@@ -680,14 +853,16 @@ int main(){
                 executePipe(res, pipeIndex);
             }
         }
+        reopenDescriptors();
         printPrompt();
 
     }
-
+    for ( size_t i = 0 ; i < res.size() ; i++ )
+        delete [] res[i];
     handleIOErrors();
     
 
-    std::cout << "Press any key to continue...\n";
+    cout << "Press any key to continue...\n";
     getchar();
     return 0;
 }
